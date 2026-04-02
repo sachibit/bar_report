@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BAR REPORT</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1c1917;--charcoal:#2c2825;--warm:#44403c;--muted:#78716c;
+  --stone:#a8a29e;--silk:#e7e0d8;--rice:#f5f0ea;--paper:#faf7f4;--white:#fff;
+  --sage:#7c9a84;--matcha:#5c7a62;--terra:#c4714a;--gold:#b5924a;
+  --border:rgba(44,40,37,.1);--shadow:0 2px 20px rgba(28,25,23,.08);
+}
+html,body{height:100%;overflow-x:hidden}
+body{font-family:'DM Sans','Noto Serif JP',sans-serif;background:var(--rice);color:var(--ink);display:flex;flex-direction:column;align-items:center;padding-bottom:80px}
+/* header */
+.hdr{width:100%;background:var(--charcoal);padding:22px 28px 20px;display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:32px}
+.hdr-sub{font-size:10px;color:var(--stone);letter-spacing:.25em;text-transform:uppercase;margin-bottom:3px}
+.hdr-title{font-family:'Noto Serif JP',serif;font-weight:300;font-size:20px;color:var(--paper);letter-spacing:.15em}
+.hdr-date{font-size:11px;color:var(--stone);letter-spacing:.08em}
+/* progress */
+.prog-wrap{width:100%;max-width:500px;padding:0 20px;margin-bottom:28px}
+.prog-top{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:7px}
+.dots{display:flex;gap:5px;align-items:center}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--silk);transition:all .3s}
+.dot.done{background:var(--sage)}.dot.active{background:var(--charcoal);width:14px;border-radius:3px}
+.prog-track{width:100%;height:2px;background:var(--silk);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:var(--charcoal);border-radius:2px;transition:width .5s ease}
+/* card */
+.card{width:100%;max-width:500px;padding:0 20px;animation:up .35s ease}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.ci{background:var(--white);border-radius:16px;padding:28px;box-shadow:var(--shadow);border:1px solid var(--border)}
+/* type */
+.stag{display:inline-flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.stag::before{content:'';display:block;width:14px;height:1px;background:var(--stone)}
+.qlabel{font-family:'Noto Serif JP',serif;font-size:18px;font-weight:400;color:var(--ink);line-height:1.6;margin-bottom:5px}
+.qhint{font-size:12px;color:var(--muted);margin-bottom:22px;line-height:1.6}
+/* inputs */
+input[type=text],input[type=number],input[type=date],select{
+  width:100%;padding:13px 15px;background:var(--paper);border:1.5px solid var(--silk);
+  border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--ink);
+  outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none
+}
+input:focus,select:focus{border-color:var(--charcoal);background:var(--white)}
+input::placeholder{color:var(--stone)}
+textarea{width:100%;padding:13px 15px;background:var(--paper);border:1.5px solid var(--silk);border-radius:10px;font-family:'DM Sans','Noto Serif JP',sans-serif;font-size:13px;color:var(--ink);outline:none;resize:vertical;min-height:80px;transition:border-color .2s;line-height:1.7}
+textarea:focus{border-color:var(--charcoal);background:var(--white)}
+textarea::placeholder{color:var(--stone)}
+/* sales */
+.srow{display:flex;align-items:center;gap:10px;background:var(--paper);border:1.5px solid var(--silk);border-radius:10px;padding:12px 15px;margin-bottom:10px;transition:border-color .2s}
+.srow:focus-within{border-color:var(--charcoal);background:var(--white)}
+.sicon{font-size:17px;width:26px;text-align:center}
+.slabel{font-size:12px;color:var(--warm);width:55px;flex-shrink:0;font-weight:500}
+.sinput{flex:1;border:none!important;background:transparent!important;padding:0!important;font-size:17px!important;font-weight:500!important;text-align:right;color:var(--ink)!important}
+.sunit{font-size:11px;color:var(--muted);margin-left:3px}
+.stotal{display:flex;justify-content:space-between;align-items:center;padding:11px 15px;background:var(--charcoal);border-radius:10px;margin-top:2px}
+.stotal-l{font-size:11px;color:var(--stone);letter-spacing:.1em}
+.stotal-v{font-size:20px;font-weight:500;color:var(--paper)}
+/* safe */
+.bills{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}
+.brow{display:flex;align-items:center;gap:7px;background:var(--paper);border:1.5px solid var(--silk);border-radius:10px;padding:9px 11px;transition:border-color .2s}
+.brow:focus-within{border-color:var(--charcoal)}
+.bdenom{font-size:11px;color:var(--muted);width:42px;flex-shrink:0}
+.binput{flex:1;border:none!important;background:transparent!important;padding:0!important;font-size:14px!important;font-weight:500!important;text-align:right;color:var(--ink)!important}
+.bunit{font-size:10px;color:var(--stone)}
+.sresult{border-radius:10px;padding:13px 15px;display:flex;justify-content:space-between;align-items:center;margin-top:7px}
+.sok{background:rgba(124,154,132,.12);border:1px solid rgba(124,154,132,.3)}
+.sng{background:rgba(196,113,74,.1);border:1px solid rgba(196,113,74,.3)}
+.srlabel{font-size:12px;color:var(--warm)}
+.srval{font-size:19px;font-weight:600}
+.sok .srval{color:var(--matcha)}.sng .srval{color:var(--terra)}
+/* orders - unified row style, no section dividers */
+.orow{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--paper);border:1.5px solid var(--silk);border-radius:10px;margin-bottom:8px;transition:border-color .2s}
+.orow:focus-within{border-color:var(--charcoal)}
+.oname{font-size:13px;color:var(--warm);font-weight:500;flex:1}
+/* fixed item qty with unit inline */
+.fix-qty-wrap{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.fix-qty{width:58px!important;text-align:right!important;font-size:15px!important;font-weight:500!important;padding:6px 8px!important;background:var(--white)!important;border-radius:7px!important}
+.fix-unit{font-size:12px;color:var(--muted);white-space:nowrap;min-width:20px}
+/* dropdown row */
+.drop-select{flex:1.6;padding:8px 10px!important;font-size:13px!important;border-radius:7px!important;background:var(--white)!important;border:1.5px solid var(--silk)!important}
+/* level selector - pill buttons */
+.level-wrap{display:flex;gap:5px;flex-shrink:0}
+.lvl-btn{padding:5px 10px;border-radius:20px;font-size:11px;border:1.5px solid var(--silk);background:var(--white);color:var(--muted);cursor:pointer;transition:all .2s;white-space:nowrap;font-family:'DM Sans',sans-serif}
+.lvl-btn.on{border-color:var(--charcoal);background:var(--charcoal);color:var(--paper)}
+/* free row */
+.free-name{flex:1.8;padding:7px 9px!important;font-size:13px!important;border-radius:7px!important;background:var(--white)!important}
+.free-qty{flex:1;padding:7px 9px!important;font-size:13px!important;border-radius:7px!important;background:var(--white)!important}
+.delbtn{width:26px;height:26px;background:none;border:1px solid var(--silk);border-radius:50%;color:var(--stone);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;line-height:1}
+.delbtn:hover{border-color:var(--terra);color:var(--terra)}
+.addbtn{width:100%;padding:10px;background:none;border:1.5px dashed var(--silk);border-radius:10px;font-size:12px;color:var(--muted);cursor:pointer;letter-spacing:.08em;transition:all .2s;margin-bottom:4px;font-family:'DM Sans',sans-serif}
+.addbtn:hover{border-color:var(--stone);color:var(--warm)}
+/* reminder */
+.rbox{background:rgba(181,146,74,.08);border:1.5px solid rgba(181,146,74,.3);border-radius:14px;padding:26px 22px;text-align:center}
+.ricon{font-size:34px;margin-bottom:10px}
+.rtext{font-family:'Noto Serif JP',serif;font-size:16px;color:var(--warm);line-height:1.7}
+.rsub{font-size:11px;color:var(--muted);line-height:1.7;margin-top:6px}
+/* checklist */
+.chklist{display:flex;flex-direction:column;gap:7px}
+.chkitem{display:flex;align-items:center;gap:13px;padding:13px 15px;background:var(--paper);border:1.5px solid var(--silk);border-radius:10px;cursor:pointer;transition:all .2s;user-select:none}
+.chkitem.on{background:rgba(124,154,132,.08);border-color:rgba(124,154,132,.4)}
+.chkitem.monthly{border-style:dashed}
+.chkbox{width:20px;height:20px;border:2px solid var(--silk);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:12px}
+.chkitem.on .chkbox{background:var(--sage);border-color:var(--sage);color:#fff}
+.chklbl{font-size:13px;color:var(--warm);flex:1;transition:color .2s}
+.chkitem.on .chklbl{color:var(--stone);text-decoration:line-through;text-decoration-color:var(--stone)}
+.mbadge{font-size:9px;color:var(--gold);border:1px solid rgba(181,146,74,.4);border-radius:4px;padding:2px 6px;white-space:nowrap}
+.cpbar{margin-top:12px}
+.cptrack{width:100%;height:3px;background:var(--silk);border-radius:2px;overflow:hidden;margin-bottom:5px}
+.cpfill{height:100%;background:var(--sage);border-radius:2px;transition:width .4s ease}
+.cplbl{font-size:10px;color:var(--muted);text-align:center;letter-spacing:.1em}
+/* glass */
+.glassbtns{display:flex;gap:8px;margin-top:8px}
+.gbtn{flex:1;padding:13px;border-radius:10px;font-size:13px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;border:1.5px solid var(--silk);background:var(--paper);color:var(--warm)}
+.gbtn.on{border-color:var(--charcoal);background:var(--charcoal);color:var(--paper)}
+.divider{width:100%;height:1px;background:var(--silk);margin:18px 0}
+/* buttons */
+.bp{width:100%;padding:15px;background:var(--charcoal);color:var(--paper);border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;letter-spacing:.08em;cursor:pointer;margin-top:22px;transition:all .2s}
+.bp:hover{background:var(--ink);transform:translateY(-1px)}
+.bp:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.bs{width:100%;padding:13px;background:none;color:var(--muted);border:1.5px solid var(--silk);border-radius:12px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;margin-top:9px;transition:all .2s}
+.bs:hover{border-color:var(--stone);color:var(--warm)}
+.bsage{width:100%;padding:15px;background:var(--sage);color:#fff;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-top:22px;transition:all .2s}
+.bsage:hover{background:var(--matcha)}
+/* summary */
+.ssec{margin-bottom:14px;background:var(--white);border-radius:14px;padding:20px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.stitle{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.stitle::after{content:'';flex:1;height:1px;background:var(--silk)}
+.srow2{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--rice);font-size:13px}
+.srow2:last-child{border-bottom:none}
+.sk{color:var(--warm)}.sv{font-weight:500;color:var(--ink)}
+.stot{font-size:19px;font-weight:600;color:var(--charcoal)}
+.ok{color:var(--matcha);font-weight:600}.ng{color:var(--terra);font-weight:600}
+.linebox{background:var(--paper);border:1.5px solid var(--silk);border-radius:12px;padding:18px;font-size:12px;line-height:1.9;color:var(--warm);white-space:pre-wrap;font-family:'Noto Serif JP',sans-serif;margin-bottom:10px}
+.copybtn{width:100%;padding:13px;background:var(--sage);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;letter-spacing:.08em;transition:all .2s}
+.copybtn:hover{background:var(--matcha)}.copybtn.done{background:var(--charcoal)}
+.actrow{display:flex;gap:8px;margin-top:9px}
+.actrow .bs{margin-top:0;flex:1}
+.bcsvl{flex:1;padding:13px;background:none;color:var(--muted);border:1.5px solid var(--silk);border-radius:12px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .2s}
+.bcsvl:hover{border-color:var(--sage);color:var(--sage)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--charcoal);color:var(--paper);padding:11px 22px;border-radius:50px;font-size:12px;letter-spacing:.08em;transition:transform .3s;z-index:999;white-space:nowrap;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.bsend{width:100%;padding:15px;background:var(--gold);color:var(--white);border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;letter-spacing:.08em;cursor:pointer;margin-top:10px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.bsend:hover{background:#a07c35;transform:translateY(-1px)}
+.bsend:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.bsend.sent{background:var(--matcha)}
+.send-status{font-size:12px;color:var(--muted);text-align:center;margin-top:6px;min-height:18px}
+@media(max-width:400px){.bills{grid-template-columns:1fr}.ci{padding:22px 16px}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="hdr-sub">Daily Report</div>
+    <div class="hdr-title">BAR NIGHT</div>
+  </div>
+  <div class="hdr-date" id="hdate"></div>
+</div>
+
+<div class="prog-wrap">
+  <div class="prog-top">
+    <span id="plabel">STEP 1 / 9</span>
+    <div class="dots" id="dots"></div>
+  </div>
+  <div class="prog-track"><div class="prog-fill" id="pfill"></div></div>
+</div>
+
+<div class="card" id="card"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 設定 ──────────────────────────────────────
+const SAFE_TARGET = 66500;
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyU2sYZ0Ru5YhNAztmd9UoRhY2WVCyXTYsBXO_AgvrhuTUV8xTYTPWDv5CBVLiw0v01/exec';
+
+// 固定発注アイテム: name, unit
+const FIXED = [
+  {name:'氷カット', unit:'袋'},
+  {name:'丸氷',    unit:'袋'},
+  {name:'炭酸',    unit:'ケース'},
+];
+
+// プルダウン選択肢
+const DROPS = ['タオル','おしぼり','ナッツ','ビーバー','ゴミ袋','洗剤'];
+const LEVELS = ['少ない','無し'];
+
+// ステップ定義
+// remind は orders の後に来る（発注入力完了後リマインド）
+const STEPS = ['basic','groups','sales','safe','orders','remind','check','handover','summary'];
+
+// ── 状態 ──────────────────────────────────────
+const S = {
+  date:'', staff:'', groups:'',
+  cash:'', card:'', other:'',
+  bills:{10000:0,5000:0,1000:0,500:0,100:0,50:0,10:0,5:0,1:0},
+  diffReason:'',
+  fix:{'氷カット':'','丸氷':'','炭酸':''},  // qty as string
+  drops:[{name:'',level:''}],              // always start with 1 row
+  frees:[],                                // [{name, qty(text)}]
+  chk:{}, glassOk:null, memo:''
+};
+let st = 0;
+
+// ── utils ──────────────────────────────────────
+const td  = () => { const d=new Date(); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
+const p   = n  => String(n).padStart(2,'0');
+const fd  = s  => { if(!s) return ''; const[y,m,d]=s.split('-'); return `${y}年${+m}月${+d}日`; };
+const fy  = n  => Number(n||0).toLocaleString('ja-JP')+'円';
+const totSales = () => (+S.cash||0)+(+S.card||0)+(+S.other||0);
+const safeTot  = () => [10000,5000,1000,500,100,50,10,5,1].reduce((a,b)=>a+b*(+S.bills[b]||0),0);
+const safeDif  = () => safeTot()-SAFE_TARGET;
+const isFirst  = () => new Date(S.date||td()).getDate()===1;
+
+const chkItems = () => {
+  const a=[
+    {id:'soda',  lbl:'炭酸補充'},
+    {id:'ac',    lbl:'エアコン切る'},
+    {id:'heat',  lbl:'暖房のコンセント抜く'},
+    {id:'chg',   lbl:'充電器のコンセント抜く'},
+    {id:'fridge',lbl:'冷蔵庫閉まってるか確認'},
+    {id:'light', lbl:'電気消す'},
+    {id:'lock',  lbl:'戸締り＆鍵戻す'},
+  ];
+  if(isFirst()) a.push({id:'sponge',lbl:'スポンジ交換',mo:true});
+  return a;
+};
+
+// ── progress ───────────────────────────────────
+function updProg(){
+  const pct=((st+1)/STEPS.length*100).toFixed(0);
+  document.getElementById('pfill').style.width=pct+'%';
+  document.getElementById('plabel').textContent=`STEP ${st+1} / ${STEPS.length}`;
+  document.getElementById('dots').innerHTML=STEPS.map((_,i)=>{
+    const c=i<st?'done':i===st?'active':''; return `<div class="dot ${c}"></div>`;
+  }).join('');
+}
+
+// ── render ─────────────────────────────────────
+function render(){
+  updProg();
+  const d=new Date();
+  document.getElementById('hdate').textContent=`${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())}`;
+  const c=document.getElementById('card');
+  const inner=document.createElement('div'); inner.className='ci';
+  inner.innerHTML=({basic,groups,sales,safe,orders,remind,check,handover,summary})[STEPS[st]]();
+  c.innerHTML=''; c.appendChild(inner);
+  c.style.animation='none';
+  requestAnimationFrame(()=>{ c.style.animation=''; c.className='card'; });
+}
+
+// ════════════════════════════════════════════════
+//  STEP TEMPLATES
+// ════════════════════════════════════════════════
+
+function basic(){ return `
+  <div class="stag">基本情報</div>
+  <div class="qlabel">日付と担当者名を<br>教えてください</div>
+  <div class="qhint">今日の日報を開始します ✦</div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <input type="date" id="idate" value="${S.date||td()}">
+    <input type="text" id="istaff" placeholder="担当者名" value="${S.staff}">
+  </div>
+  <button class="bp" onclick="go('basic')">次へ →</button>`; }
+
+function groups(){ return `
+  <div class="stag">来店情報</div>
+  <div class="qlabel">本日の組数は？</div>
+  <div class="qhint">グループ数（テーブル数）を入力してください</div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <input type="number" id="igrp" placeholder="0" min="0" value="${S.groups}"
+      style="font-size:34px;font-weight:500;text-align:center;padding:18px">
+    <span style="font-size:15px;color:var(--muted);flex-shrink:0">組</span>
+  </div>
+  <button class="bp" onclick="go('groups')">次へ →</button>
+  <button class="bs" onclick="back()">← 戻る</button>`; }
+
+function sales(){
+  const t=(+S.cash||0)+(+S.card||0)+(+S.other||0);
+  return `
+  <div class="stag">売上入力</div>
+  <div class="qlabel">本日の売上を<br>入力してください</div>
+  <div class="qhint">支払い方法別に入力してください</div>
+  <div class="srow"><span class="sicon">💵</span><span class="slabel">現金</span>
+    <input class="sinput" type="number" id="icash" placeholder="0" min="0" value="${S.cash}" oninput="cSales()">
+    <span class="sunit">円</span></div>
+  <div class="srow"><span class="sicon">💳</span><span class="slabel">カード</span>
+    <input class="sinput" type="number" id="icard" placeholder="0" min="0" value="${S.card}" oninput="cSales()">
+    <span class="sunit">円</span></div>
+  <div class="srow"><span class="sicon">📱</span><span class="slabel">その他</span>
+    <input class="sinput" type="number" id="iother" placeholder="0" min="0" value="${S.other}" oninput="cSales()">
+    <span class="sunit">円</span></div>
+  <div class="stotal">
+    <span class="stotal-l">TOTAL</span>
+    <span class="stotal-v" id="stotv">${t.toLocaleString()} 円</span>
+  </div>
+  <button class="bp" onclick="go('sales')">次へ →</button>
+  <button class="bs" onclick="back()">← 戻る</button>`; }
+
+function safe(){
+  const bs=[10000,5000,1000,500,100,50,10,5,1];
+  const lb={10000:'¥10,000',5000:'¥5,000',1000:'¥1,000',500:'¥500',100:'¥100',50:'¥50',10:'¥10',5:'¥5',1:'¥1'};
+  const grid=bs.map(b=>`
+    <div class="brow">
+      <span class="bdenom">${lb[b]}</span>
+      <input class="binput" type="number" data-b="${b}" placeholder="0" min="0"
+        value="${S.bills[b]||''}" oninput="cSafe()">
+      <span class="bunit">枚</span>
+    </div>`).join('');
+  const tot=safeTot(); const dif=tot-SAFE_TARGET; const ok=dif===0;
+  const dtxt=dif===0?'差異なし ✓':(dif>0?`+${dif.toLocaleString()} 円`:`${dif.toLocaleString()} 円`);
+  return `
+  <div class="stag">金庫確認</div>
+  <div class="qlabel">金庫の釣り銭を<br>確認してください</div>
+  <div style="font-size:11px;color:var(--muted);text-align:right;margin-bottom:11px">
+    目標釣り銭額：<strong style="color:var(--warm)">¥${SAFE_TARGET.toLocaleString()}</strong>
+  </div>
+  <div class="bills">${grid}</div>
+  <div class="sresult ${ok?'sok':'sng'}" id="sbox">
+    <span class="srlabel">合計 <span id="stv">${tot.toLocaleString()}</span> 円</span>
+    <span class="srval" id="sdv">${dtxt}</span>
+  </div>
+  <div id="rwrap" style="${ok?'display:none':''}">
+    <div style="font-size:11px;color:var(--muted);margin:12px 0 6px">差異の理由（任意）</div>
+    <textarea id="idiff" placeholder="例）両替対応あり、釣り銭不足など">${S.diffReason}</textarea>
+  </div>
+  <button class="bp" onclick="go('safe')">次へ →</button>
+  <button class="bs" onclick="back()">← 戻る</button>`; }
+
+function orders(){
+  // Fixed items
+  const fixH = FIXED.map(({name,unit})=>`
+    <div class="orow">
+      <span class="oname">${name}</span>
+      <div class="fix-qty-wrap">
+        <input class="fix-qty" type="number" placeholder="0" min="0"
+          value="${S.fix[name]||''}" data-fn="${name}" oninput="uFix(this)">
+        <span class="fix-unit">${unit}</span>
+      </div>
+    </div>`).join('');
+
+  // Dropdown rows — always at least 1 shown
+  const dropH = S.drops.map((o,i)=>`
+    <div class="orow" id="dr${i}">
+      <select class="drop-select" data-di="${i}" onchange="uDrop(this,'name')">
+        <option value="">選択してください</option>
+        ${DROPS.map(op=>`<option ${o.name===op?'selected':''}>${op}</option>`).join('')}
+      </select>
+      <div class="level-wrap">
+        ${LEVELS.map(lv=>`
+          <button class="lvl-btn ${o.level===lv?'on':''}"
+            onclick="setLevel(${i},'${lv}')">${lv}</button>`).join('')}
+      </div>
+      ${S.drops.length>1?`<button class="delbtn" onclick="dDrop(${i})">×</button>`:''}
+    </div>`).join('');
+
+  // Free rows
+  const freeH = S.frees.map((o,i)=>`
+    <div class="orow" id="fr${i}">
+      <input class="free-name" type="text" placeholder="商品名" value="${o.name}"
+        data-fi="${i}" oninput="uFree(this,'name')">
+      <input class="free-qty" type="text" placeholder="数量・メモ" value="${o.qty}"
+        data-fi="${i}" oninput="uFree(this,'qty')">
+      <button class="delbtn" onclick="dFree(${i})">×</button>
+    </div>`).join('');
+
+  return `
+  <div class="stag">発注入力</div>
+  <div class="qlabel">発注数量を<br>入力してください</div>
+  <div class="qhint">0・未入力の場合は日報に記載されません</div>
+
+  ${fixH}
+
+  <div style="height:8px"></div>
+  ${dropH}
+  <button class="addbtn" onclick="aDrop()">＋ プルダウンを追加</button>
+
+  <div style="height:4px"></div>
+  ${freeH}
+  <button class="addbtn" onclick="aFree()">＋ その他を追加</button>
+
+  <button class="bp" onclick="go('orders')">発注入力を完了する →</button>
+  <button class="bs" onclick="back()">← 戻る</button>`; }
+
+// ── リマインド（発注入力後） ──────────────────
+function remind(){ return `
+  <div class="stag">発注リマインド</div>
+  <div class="rbox">
+    <div class="ricon">📦</div>
+    <div class="rtext">備品・ボトルの発注<br>し忘れはありませんか？</div>
+    <div class="rsub">今一度、在庫を確認してください</div>
+  </div>
+  <button class="bsage" onclick="go('remind')">確認OK！ →</button>
+  <button class="bs" onclick="back()">← 発注をやり直す</button>`; }
+
+function check(){
+  const items=chkItems();
+  const done=items.filter(it=>S.chk[it.id]).length;
+  const total=items.length;
+  const pct=total?Math.round(done/total*100):0;
+  const rows=items.map(it=>{
+    const on=!!S.chk[it.id];
+    return `<div class="chkitem ${on?'on':''} ${it.mo?'monthly':''}" onclick="tChk('${it.id}')">
+      <div class="chkbox">${on?'✓':''}</div>
+      <span class="chklbl">${it.lbl}</span>
+      ${it.mo?'<span class="mbadge">月初</span>':''}
+    </div>`;}).join('');
+  return `
+  <div class="stag">退勤前チェック</div>
+  <div class="qlabel">帰る前の確認を<br>してください</div>
+  <div class="qhint">全項目チェックで次へ進めます</div>
+  <div class="chklist">${rows}</div>
+  <div class="cpbar">
+    <div class="cptrack"><div class="cpfill" style="width:${pct}%"></div></div>
+    <div class="cplbl">${done} / ${total} 完了</div>
+  </div>
+  <button class="bp" id="bcnxt" onclick="go('check')" ${done===total?'':'disabled'}>次へ →</button>
+  <button class="bs" onclick="back()">← 戻る</button>`; }
+
+function handover(){ return `
+  <div class="stag">引き継ぎ</div>
+  <div class="qlabel">引き継ぎ事項を<br>確認してください</div>
+  <div style="margin-bottom:20px">
+    <div style="font-size:13px;color:var(--warm);font-weight:500;margin-bottom:8px">🥂 グラスの洗い残しはありますか？</div>
+    <div class="glassbtns">
+      <button class="gbtn ${S.glassOk===false?'on':''}" onclick="setGlass(false)">✓ なし（きれい）</button>
+      <button class="gbtn ${S.glassOk===true?'on':''}" onclick="setGlass(true)">⚠️ あり（要確認）</button>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div style="font-size:13px;color:var(--warm);font-weight:500;margin-bottom:6px">📝 特記事項・引き継ぎ</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5">クレーム、機器トラブル、忘れ物など。なければ空白でOK</div>
+  <textarea id="imemo" placeholder="例）席Cのクーラーが効きすぎているため確認をお願いします">${S.memo}</textarea>
+  <button class="bp" onclick="go('handover')">日報を完成させる ✦</button>
+  <button class="bs" onclick="back()">← 戻る</button>`; }
+
+function summary(){
+  const tot=totSales(); const dif=safeDif(); const ok=dif===0;
+  const dlbl=dif===0?'差異なし':(dif>0?`+${dif.toLocaleString()}円 超過`:`${Math.abs(dif).toLocaleString()}円 不足`);
+
+  // Collect orders with actual values
+  const allOrd=[];
+  FIXED.forEach(({name,unit})=>{
+    const q=+S.fix[name]||0;
+    if(q>0) allOrd.push(`${name}　${q}${unit}`);
+  });
+  S.drops.forEach(o=>{
+    if(o.name&&o.level) allOrd.push(`${o.name}　${o.level}`);
+  });
+  S.frees.forEach(o=>{
+    if(o.name) allOrd.push(o.qty?`${o.name}　${o.qty}`:o.name);
+  });
+  const ordRows = allOrd.length
+    ? allOrd.map(t=>`<div class="srow2"><span class="sk">${t}</span></div>`).join('')
+    : '<div style="font-size:12px;color:var(--stone);padding:3px 0">なし</div>';
+
+  const gtxt=S.glassOk===null?'未確認':S.glassOk?'あり（要確認）':'なし（きれい）';
+  const gcls=S.glassOk?'ng':'ok';
+
+  return `
+  <div class="stag">日報完成</div>
+  <div class="qlabel" style="margin-bottom:18px">本日もお疲れ様でした ✦</div>
+
+  <div class="ssec">
+    <div class="stitle">基本情報</div>
+    <div class="srow2"><span class="sk">日付</span><span class="sv">${fd(S.date)}</span></div>
+    <div class="srow2"><span class="sk">担当者</span><span class="sv">${S.staff}</span></div>
+    <div class="srow2"><span class="sk">来店組数</span><span class="sv">${S.groups}組</span></div>
+  </div>
+
+  <div class="ssec">
+    <div class="stitle">売上</div>
+    <div class="srow2"><span class="sk">現金</span><span class="sv">${fy(S.cash)}</span></div>
+    <div class="srow2"><span class="sk">カード</span><span class="sv">${fy(S.card)}</span></div>
+    <div class="srow2"><span class="sk">その他</span><span class="sv">${fy(S.other)}</span></div>
+    <div class="srow2" style="padding-top:9px;border-top:1px solid var(--silk);margin-top:3px">
+      <span class="sk" style="font-weight:600">合計</span>
+      <span class="stot">${tot.toLocaleString()} 円</span>
+    </div>
+  </div>
+
+  <div class="ssec">
+    <div class="stitle">金庫確認</div>
+    <div class="srow2"><span class="sk">実際の釣り銭</span><span class="sv">${safeTot().toLocaleString()} 円</span></div>
+    <div class="srow2"><span class="sk">目標釣り銭</span><span class="sv">${SAFE_TARGET.toLocaleString()} 円</span></div>
+    <div class="srow2"><span class="sk">差異</span><span class="${ok?'ok':'ng'}">${dlbl}</span></div>
+    ${!ok&&S.diffReason?`<div class="srow2"><span class="sk">理由</span><span class="sv" style="font-size:12px">${S.diffReason}</span></div>`:''}
+  </div>
+
+  <div class="ssec">
+    <div class="stitle">発注リスト</div>
+    ${ordRows}
+  </div>
+
+  <div class="ssec">
+    <div class="stitle">引き継ぎ</div>
+    <div class="srow2"><span class="sk">グラス洗い残し</span><span class="${gcls}">${gtxt}</span></div>
+    ${S.memo?`<div style="margin-top:7px;font-size:13px;color:var(--warm);line-height:1.7">${S.memo.replace(/\n/g,'<br>')}</div>`:''}
+  </div>
+
+  <div class="ssec">
+    <div class="stitle">LINE 送信テンプレ</div>
+    <div class="linebox">${buildLine()}</div>
+    <button class="copybtn" id="cbtn" onclick="cpLine()">📋 LINEテンプレをコピー</button>
+  </div>
+
+  <div style="margin-top:10px">
+    <button class="bsend" id="bsend" onclick="sendToSheet()">📤 スプレッドシートに送信</button>
+    <div class="send-status" id="send-status"></div>
+  </div>
+  <div class="actrow">
+    <button class="bcsvl" onclick="expCSV()">📊 Excel出力</button>
+    <button class="bs" onclick="resetAll()">新しい日報</button>
+  </div>`; }
+
+// ════════════════════════════════════════════════
+//  INTERACTIONS
+// ════════════════════════════════════════════════
+
+function cSales(){
+  const c=+document.getElementById('icash')?.value||0;
+  const k=+document.getElementById('icard')?.value||0;
+  const o=+document.getElementById('iother')?.value||0;
+  const el=document.getElementById('stotv'); if(el) el.textContent=(c+k+o).toLocaleString()+' 円';
+}
+
+function cSafe(){
+  [10000,5000,1000,500,100,50,10,5,1].forEach(b=>{
+    const el=document.querySelector(`[data-b="${b}"]`); if(el) S.bills[b]=+el.value||0;
+  });
+  const tot=safeTot(); const dif=tot-SAFE_TARGET; const ok=dif===0;
+  const bx=document.getElementById('sbox');
+  if(bx){
+    bx.className='sresult '+(ok?'sok':'sng');
+    document.getElementById('stv').textContent=tot.toLocaleString();
+    document.getElementById('sdv').textContent=dif===0?'差異なし ✓':(dif>0?`+${dif.toLocaleString()} 円`:`${dif.toLocaleString()} 円`);
+  }
+  const rw=document.getElementById('rwrap'); if(rw) rw.style.display=ok?'none':'';
+}
+
+function uFix(el){ S.fix[el.dataset.fn]=el.value; }
+
+function aDrop(){ S.drops.push({name:'',level:''}); render(); }
+function dDrop(i){ S.drops.splice(i,1); if(S.drops.length===0) S.drops.push({name:'',level:''}); render(); }
+function uDrop(el,f){ S.drops[+el.dataset.di][f]=el.value; }
+function setLevel(i,lv){
+  // toggle: click same = deselect
+  S.drops[i].level = S.drops[i].level===lv ? '' : lv;
+  // re-render just the level buttons for this row without full render
+  const wrap = document.querySelector(`#dr${i} .level-wrap`);
+  if(wrap) wrap.innerHTML = LEVELS.map(l=>`
+    <button class="lvl-btn ${S.drops[i].level===l?'on':''}"
+      onclick="setLevel(${i},'${l}')">${l}</button>`).join('');
+}
+
+function aFree(){ S.frees.push({name:'',qty:''}); render(); setTimeout(()=>{ const s=document.querySelectorAll('.free-name'); if(s.length) s[s.length-1].focus(); },50); }
+function dFree(i){ S.frees.splice(i,1); render(); }
+function uFree(el,f){ S.frees[+el.dataset.fi][f]=el.value; }
+
+function tChk(id){
+  S.chk[id]=!S.chk[id];
+  const items=chkItems(); const done=items.filter(it=>S.chk[it.id]).length; const total=items.length;
+  const el=document.querySelector(`[onclick="tChk('${id}')"]`);
+  if(el){
+    const on=S.chk[id]; el.classList.toggle('on',on);
+    el.querySelector('.chkbox').textContent=on?'✓':'';
+    const lbl=el.querySelector('.chklbl');
+    lbl.style.textDecoration=on?'line-through':'none';
+    lbl.style.color=on?'var(--stone)':'var(--warm)';
+  }
+  const f=document.querySelector('.cpfill'); const l=document.querySelector('.cplbl'); const b=document.getElementById('bcnxt');
+  const pct=total?Math.round(done/total*100):0;
+  if(f) f.style.width=pct+'%'; if(l) l.textContent=`${done} / ${total} 完了`; if(b) b.disabled=done!==total;
+}
+
+function setGlass(v){ S.glassOk=v; render(); }
+
+// ════════════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════════════
+
+function go(s){
+  if(s==='basic'){
+    const nm=document.getElementById('istaff')?.value?.trim();
+    if(!nm){ shToast('担当者名を入力してください'); return; }
+    S.date=document.getElementById('idate')?.value||td(); S.staff=nm;
+  } else if(s==='groups'){
+    S.groups=document.getElementById('igrp')?.value||'0';
+  } else if(s==='sales'){
+    S.cash=document.getElementById('icash')?.value||'0';
+    S.card=document.getElementById('icard')?.value||'0';
+    S.other=document.getElementById('iother')?.value||'0';
+  } else if(s==='safe'){
+    const r=document.getElementById('idiff'); if(r) S.diffReason=r.value;
+    const dif=safeDif();
+    if(dif!==0&&!confirm(`金庫に差異があります（${dif>0?'+':''}${dif.toLocaleString()}円）。\nこのまま進みますか？`)) return;
+  } else if(s==='handover'){
+    if(S.glassOk===null){ shToast('グラスの状態を選択してください'); return; }
+    S.memo=document.getElementById('imemo')?.value||'';
+  }
+  st=Math.min(st+1,STEPS.length-1); render(); window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function back(){ st=Math.max(st-1,0); render(); window.scrollTo({top:0,behavior:'smooth'}); }
+
+// ════════════════════════════════════════════════
+//  LINE / CSV
+// ════════════════════════════════════════════════
+
+function buildLine(){
+  const tot=totSales(); const dif=safeDif();
+  const dtxt=dif===0?'差異なし ✓':(dif>0?`超過 +${dif.toLocaleString()}円`:`不足 ${Math.abs(dif).toLocaleString()}円`);
+  const ords=[];
+  FIXED.forEach(({name,unit})=>{ const q=+S.fix[name]||0; if(q>0) ords.push(`  ・${name}　${q}${unit}`); });
+  S.drops.forEach(o=>{ if(o.name&&o.level) ords.push(`  ・${o.name}　${o.level}`); });
+  S.frees.forEach(o=>{ if(o.name) ords.push(`  ・${o.name}${o.qty?' '+o.qty:''}`); });
+  const ordtxt=ords.length?ords.join('\n'):'  なし';
+  const gtxt=S.glassOk===null?'未確認':S.glassOk?'あり（要確認）⚠️':'なし ✓';
+  const rtxt=dif!==0&&S.diffReason?`\n  理由：${S.diffReason}`:'';
+  const mtxt=S.memo?`\n📝 引き継ぎ\n${S.memo}`:'';
+  return `【日報】${fd(S.date)}\n担当：${S.staff}\n\n📊 売上\n  現金　　${(+S.cash||0).toLocaleString()}円\n  カード　${(+S.card||0).toLocaleString()}円\n  その他　${(+S.other||0).toLocaleString()}円\n  ─────────\n  合計　　${tot.toLocaleString()}円\n\n👥 来店：${S.groups}組\n\n🔐 金庫確認\n  実在庫　${safeTot().toLocaleString()}円\n  差異　　${dtxt}${rtxt}\n\n📦 発注\n${ordtxt}\n\n🥂 グラス洗い残し：${gtxt}${mtxt}\n\n以上です。お疲れ様でした 🌙`;
+}
+
+function cpLine(){
+  navigator.clipboard.writeText(buildLine()).then(()=>{
+    const b=document.getElementById('cbtn');
+    if(b){ b.textContent='✓ コピーしました'; b.classList.add('done'); }
+    shToast('コピーしました！');
+    setTimeout(()=>{ if(b){ b.textContent='📋 LINEテンプレをコピー'; b.classList.remove('done'); } },2000);
+  }).catch(()=>shToast('コピーできませんでした'));
+}
+
+function expCSV(){
+  const dif=safeDif();
+  const ords=[];
+  FIXED.forEach(({name,unit})=>{ const q=+S.fix[name]||0; if(q>0) ords.push([name,`${q}${unit}`]); });
+  S.drops.forEach(o=>{ if(o.name&&o.level) ords.push([o.name,o.level]); });
+  S.frees.forEach(o=>{ if(o.name) ords.push([o.name,o.qty||'']); });
+  const gtxt=S.glassOk===null?'未確認':S.glassOk?'あり（要確認）':'なし（きれい）';
+  const rows=[
+    ['BAR NIGHT REPORT'],[''],
+    ['日付',fd(S.date)],['担当者',S.staff],['来店組数',S.groups+'組'],[''],
+    ['== 売上 =='],['現金',+S.cash||0],['カード',+S.card||0],['その他',+S.other||0],['合計',totSales()],[''],
+    ['== 金庫確認 =='],['実際の釣り銭',safeTot()],['目標釣り銭',SAFE_TARGET],['差異',dif],
+    ...(S.diffReason?[['差異の理由',S.diffReason]]:[]),[''],
+    ['== 発注リスト =='],['商品名','数量・レベル'],
+    ...(ords.length?ords:[['なし','']]),[''],
+    ['== 引き継ぎ =='],['グラス洗い残し',gtxt],
+    ...(S.memo?[['特記事項',S.memo]]:[])
+  ];
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download=`bar_report_${S.date||td()}.csv`; a.click();
+  URL.revokeObjectURL(url); shToast('Excelファイルを出力しました');
+}
+
+function resetAll(){
+  if(!confirm('新しい日報を始めますか？')) return;
+  Object.assign(S,{
+    date:'',staff:'',groups:'',cash:'',card:'',other:'',
+    bills:{10000:0,5000:0,1000:0,500:0,100:0,50:0,10:0,5:0,1:0},
+    diffReason:'',fix:{'氷カット':'','丸氷':'','炭酸':''},
+    drops:[{name:'',level:''}],frees:[],chk:{},glassOk:null,memo:''
+  });
+  st=0; render();
+}
+
+function sendToSheet(){
+  const btn=document.getElementById('bsend');
+  const status=document.getElementById('send-status');
+  if(!btn||!status) return;
+
+  btn.disabled=true; btn.textContent='送信中...';
+  status.textContent='';
+
+  // Collect orders as text
+  const ords=[];
+  FIXED.forEach(({name,unit})=>{ const q=+S.fix[name]||0; if(q>0) ords.push(`${name} ${q}${unit}`); });
+  S.drops.forEach(o=>{ if(o.name&&o.level) ords.push(`${o.name} ${o.level}`); });
+  S.frees.forEach(o=>{ if(o.name) ords.push(`${o.name}${o.qty?' '+o.qty:''}`); });
+
+  const payload = {
+    date:       fd(S.date),
+    staff:      S.staff,
+    groups:     S.groups,
+    cash:       +S.cash||0,
+    card:       +S.card||0,
+    other:      +S.other||0,
+    totalSales: totSales(),
+    safeActual: safeTot(),
+    safeDiff:   safeDif(),
+    diffReason: S.diffReason||'',
+    orders:     ords.join('、')||'なし',
+    glass:      S.glassOk===null?'未確認':S.glassOk?'あり（要確認）':'なし（きれい）',
+    memo:       S.memo||''
+  };
+
+  // JSONP方式でCORSを回避
+  const cbName = 'gasCallback_'+Date.now();
+  const timer = setTimeout(()=>{
+    cleanup();
+    btn.disabled=false; btn.textContent='📤 スプレッドシートに送信';
+    status.textContent='送信に失敗しました。再度お試しください。';
+    status.style.color='var(--terra)';
+  }, 10000);
+
+  function cleanup(){
+    clearTimeout(timer);
+    delete window[cbName];
+    const old=document.getElementById('gasScript');
+    if(old) old.remove();
+  }
+
+  window[cbName] = function(res){
+    cleanup();
+    if(res && res.status==='ok'){
+      btn.textContent='✓ 送信完了'; btn.classList.add('sent');
+      status.textContent='スプレッドシートに記録されました ✓';
+      status.style.color='var(--matcha)';
+    } else {
+      btn.disabled=false; btn.textContent='📤 スプレッドシートに送信';
+      status.textContent='エラーが発生しました。再度お試しください。';
+      status.style.color='var(--terra)';
+    }
+  };
+
+  const url = GAS_URL
+    + '?callback='+cbName
+    + '&data='+encodeURIComponent(JSON.stringify(payload));
+
+  const script=document.createElement('script');
+  script.id='gasScript'; script.src=url;
+  script.onerror=()=>{
+    cleanup();
+    btn.disabled=false; btn.textContent='📤 スプレッドシートに送信';
+    status.textContent='送信に失敗しました。再度お試しください。';
+    status.style.color='var(--terra)';
+  };
+  document.body.appendChild(script);
+}
+
+function shToast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+render();
+</script>
+</body>
+</html>
