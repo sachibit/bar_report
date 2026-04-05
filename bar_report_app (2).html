@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BAR REPORT</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1c1917;--charcoal:#2c2825;--warm:#44403c;--muted:#78716c;
+  --stone:#a8a29e;--silk:#e7e0d8;--rice:#f5f0ea;--paper:#faf7f4;--white:#fff;
+  --sage:#7c9a84;--matcha:#5c7a62;--terra:#c4714a;--gold:#b5924a;
+  --border:rgba(44,40,37,.1);--shadow:0 2px 20px rgba(28,25,23,.08);
+}
+html,body{height:100%;overflow-x:hidden}
+body{font-family:'DM Sans','Noto Serif JP',sans-serif;background:var(--rice);color:var(--ink);display:flex;flex-direction:column;align-items:center;padding-bottom:80px}
+.hdr{width:100%;background:var(--charcoal);padding:22px 28px 20px;display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:32px}
+.hdr-sub{font-size:10px;color:var(--stone);letter-spacing:.25em;text-transform:uppercase;margin-bottom:3px}
+.hdr-title{font-family:'Noto Serif JP',serif;font-weight:300;font-size:20px;color:var(--paper);letter-spacing:.15em}
+.hdr-date{font-size:11px;color:var(--stone);letter-spacing:.08em}
+.prog-wrap{width:100%;max-width:500px;padding:0 20px;margin-bottom:28px}
+.prog-top{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:7px}
+.dots{display:flex;gap:5px;align-items:center}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--silk);transition:all .3s}
+.dot.done{background:var(--sage)}.dot.active{background:var(--charcoal);width:14px;border-radius:3px}
+.prog-track{width:100%;height:2px;background:var(--silk);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:var(--charcoal);border-radius:2px;transition:width .5s ease}
+.card{width:100%;max-width:500px;padding:0 20px;animation:up .35s ease}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.ci{background:var(--white);border-radius:16px;padding:28px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.stag{display:inline-flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.stag::before{content:'';display:block;width:14px;height:1px;background:var(--stone)}
+.qlabel{font-family:'Noto Serif JP',serif;font-size:18px;font-weight:400;color:var(--ink);line-height:1.6;margin-bottom:5px}
+.qhint{font-size:12px;color:var(--muted);margin-bottom:22px;line-height:1.6}
+input[type=text],input[type=number],input[type=date],select{width:100%;padding:13px 15px;background:var(--paper);border:1.5px solid var(--silk);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--ink);outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+input:focus,select:focus{border-color:var(--charcoal);background:var(--white)}
+input::placeholder{color:var(--stone)}
+textarea{width:100%;padding:13px 15px;background:var(--paper);border:1.5px solid var(--silk);border-radius:10px;font-family:'DM Sans','Noto Serif JP',sans-serif;font-size:13px;color:var(--ink);outline:none;resize:vertical;min-height:80px;transition:border-color .2s;line-height:1.7}
+textarea:focus{border-color:var(--charcoal);background:var(--white)}
+textarea::placeholder{color:var(--stone)}
+
+/* shop select */
+.shop-btn{width:100%;padding:24px;border-radius:14px;font-family:'Noto Serif JP',serif;font-size:26px;font-weight:400;letter-spacing:.2em;cursor:pointer;transition:all .25s;border:2px solid var(--silk);background:var(--white);color:var(--warm);margin-bottom:12px;display:block}
+.shop-btn.on{border-color:var(--charcoal);background:var(--charcoal);color:var(--paper)}
+
+/* staff */
+.staff-list{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.staff-row{display:flex;gap:8px;align-items:center}
+.staff-input{flex:1}
+.staff-del{width:30px;height:30px;background:none;border:1px solid var(--silk);border-radius:50%;color:var(--stone);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+
+/* ticket */
+.ticket-input-area{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;padding:16px;background:var(--paper);border:1.5px solid var(--silk);border-radius:12px}
+.ticket-row{display:flex;gap:8px;align-items:center}
+.ticket-no{flex:1.1;padding:11px 12px!important;font-size:14px!important;border-radius:8px!important;background:var(--white)!important}
+.ticket-amt{flex:2;padding:11px 12px!important;font-size:16px!important;font-weight:500!important;border-radius:8px!important;background:var(--white)!important;text-align:right}
+.pay-btns{display:flex;gap:6px}
+.pay-btn{flex:1;padding:10px 4px;border-radius:8px;font-size:12px;font-weight:500;border:1.5px solid var(--silk);background:var(--white);color:var(--muted);cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;text-align:center;white-space:nowrap}
+.pay-btn.cash.on{border-color:var(--charcoal);background:var(--charcoal);color:var(--paper)}
+.pay-btn.card.on{border-color:var(--sage);background:var(--sage);color:var(--white)}
+.pay-btn.other.on{border-color:var(--gold);background:var(--gold);color:var(--white)}
+.add-ticket-btn{width:100%;padding:12px;background:var(--charcoal);color:var(--paper);border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;letter-spacing:.05em}
+.ticket-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;max-height:280px;overflow-y:auto}
+.ticket-item{display:flex;align-items:center;gap:8px;padding:10px 13px;border-radius:10px;font-size:13px}
+.ticket-item.cash{background:rgba(44,40,37,.04);border:1px solid rgba(44,40,37,.1)}
+.ticket-item.card{background:rgba(124,154,132,.08);border:1px solid rgba(124,154,132,.25)}
+.ticket-item.other{background:rgba(181,146,74,.08);border:1px solid rgba(181,146,74,.25)}
+.ticket-no-disp{color:var(--muted);font-size:11px;width:36px;flex-shrink:0}
+.ticket-type-badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;flex-shrink:0}
+.ticket-item.cash .ticket-type-badge{background:rgba(44,40,37,.1);color:var(--warm)}
+.ticket-item.card .ticket-type-badge{background:rgba(124,154,132,.2);color:var(--matcha)}
+.ticket-item.other .ticket-type-badge{background:rgba(181,146,74,.2);color:var(--gold)}
+.ticket-amt-disp{text-align:right;font-weight:600;color:var(--ink);font-size:14px;flex:1}
+.ticket-del{width:22px;height:22px;background:none;border:1px solid var(--silk);border-radius:50%;color:var(--stone);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.ticket-summary{border-radius:12px;overflow:hidden;margin-bottom:6px}
+.ts-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:13px}
+.ts-cash{background:rgba(44,40,37,.06)}.ts-card{background:rgba(124,154,132,.1)}.ts-other{background:rgba(181,146,74,.08)}.ts-total{background:var(--charcoal)}
+.ts-label{color:var(--warm);font-weight:500}.ts-total .ts-label{color:var(--stone);font-size:11px;letter-spacing:.08em}
+.ts-val{font-weight:600;font-size:15px;color:var(--ink)}.ts-total .ts-val{color:var(--paper);font-size:18px}
+.ts-empty{font-size:13px;color:var(--stone);text-align:center;padding:20px 0}
+
+/* sales */
+.srow{display:flex;align-items:center;gap:10px;background:var(--paper);border:1.5px solid var(--silk);border-radius:10px;padding:12px 15px;margin-bottom:10px;transition:border-color .2s}
+.srow:focus-within{border-color:var(--charcoal);background:var(--white)}
+.sicon{font-size:17px;width:26px;text-align:center}
+.slabel{font-size:12px;color:var(--warm);width:55px;flex-shrink:0;font-weight:500}
+.sinput{flex:1;border:none!important;background:transparent!important;padding:0!important;font-size:17px!important;font-weight:500!important;text-align:right;color:var(--ink)!important}
+.sunit{font-size:11px;color:var(--muted);margin-left:3px}
+.stotal{display:flex;justify-content:space-between;align-items:center;padding:11px 15px;background:var(--charcoal);border-radius:10px;margin-top:2px}
+.stotal-l{font-size:11px;color:var(--stone);letter-spacing:.1em}.stotal-v{font-size:20px;font-weight:500;color:var(--paper)}
+.from-ticket-hint{font-size:11px;color:var(--sage);text-align:right;margin-bottom:8px}
+
+/* safe */
+.bills{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}
+.brow{display:flex;align-items:center;gap:7px;background:var(--paper);border:1.5px solid var(--silk);border-radius:10px;padding:9px 11px;transition:border-color .2s}
+.brow:focus-within{border-color:var(--charcoal)}
+.bdenom{font-size:11px;color:var(--muted);width:42px;flex-shrink:0}
+.binput{flex:1;border:none!important;background:transparent!important;padding:0!important;font-size:14px!important;font-weight:500!important;text-align:right;color:var(--ink)!important}
+.bunit{font-size:10px;color:var(--stone)}
+.sresult{border-radius:10px;padding:13px 15px;display:flex;justify-content:space-between;align-items:center;margin-top:7px}
+.sok{background:rgba(124,154,132,.12);border:1px solid rgba(124,154,132,.3)}.sng{background:rgba(196,113,74,.1);border:1px solid rgba(196,113,74,.3)}
+.srlabel{font-size:12px;color:var(--warm)}.srval{font-size:19px;font-weight:600}
+.sok .srval{color:var(--matcha)}.sng .srval{color:var(--terra)}
+
+/* orders */
+.orow{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--paper);border:1.5px solid var(--silk);border-radius:10px;margin-bottom:8px;transition:border-color .2s}
+.orow:focus-within{border-color:var(--charcoal)}
+.oname{font-size:13px;color:var(--warm);font-weight:500;flex:1}
+.fix-qty-wrap{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.fix-qty{width:58px!important;text-align:right!important;font-size:15px!important;font-weight:500!important;padding:6px 8px!important;background:var(--white)!important;border-radius:7px!important}
+.fix-unit{font-size:12px;color:var(--muted);white-space:nowrap;min-width:20px}
+.drop-select{flex:1.6;padding:8px 10px!important;font-size:13px!important;border-radius:7px!important;background:var(--white)!important;border:1.5px solid var(--silk)!important}
+.level-wrap{display:flex;gap:5px;flex-shrink:0}
+.lvl-btn{padding:5px 10px;border-radius:20px;font-size:11px;border:1.5px solid var(--silk);background:var(--white);color:var(--muted);cursor:pointer;transition:all .2s;white-space:nowrap;font-family:'DM Sans',sans-serif}
+.lvl-btn.on{border-color:var(--charcoal);background:var(--charcoal);color:var(--paper)}
+.free-name{flex:1.8;padding:7px 9px!important;font-size:13px!important;border-radius:7px!important;background:var(--white)!important}
+.free-qty{flex:1;padding:7px 9px!important;font-size:13px!important;border-radius:7px!important;background:var(--white)!important}
+.delbtn{width:26px;height:26px;background:none;border:1px solid var(--silk);border-radius:50%;color:var(--stone);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;line-height:1}
+.addbtn{width:100%;padding:10px;background:none;border:1.5px dashed var(--silk);border-radius:10px;font-size:12px;color:var(--muted);cursor:pointer;letter-spacing:.08em;transition:all .2s;margin-bottom:4px;font-family:'DM Sans',sans-serif}
+
+/* reminder */
+.rbox{background:rgba(181,146,74,.08);border:1.5px solid rgba(181,146,74,.3);border-radius:14px;padding:26px 22px;text-align:center}
+.ricon{font-size:34px;margin-bottom:10px}.rtext{font-family:'Noto Serif JP',serif;font-size:16px;color:var(--warm);line-height:1.7}.rsub{font-size:11px;color:var(--muted);line-height:1.7;margin-top:6px}
+
+/* checklist */
+.chklist{display:flex;flex-direction:column;gap:7px}
+.chkitem{display:flex;align-items:center;gap:13px;padding:13px 15px;background:var(--paper);border:1.5px solid var(--silk);border-radius:10px;cursor:pointer;transition:all .2s;user-select:none}
+.chkitem.on{background:rgba(124,154,132,.08);border-color:rgba(124,154,132,.4)}
+.chkitem.monthly{border-style:dashed}
+.chkbox{width:20px;height:20px;border:2px solid var(--silk);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:12px}
+.chkitem.on .chkbox{background:var(--sage);border-color:var(--sage);color:#fff}
+.chklbl{font-size:13px;color:var(--warm);flex:1;transition:color .2s}
+.chkitem.on .chklbl{color:var(--stone);text-decoration:line-through;text-decoration-color:var(--stone)}
+.mbadge{font-size:9px;color:var(--gold);border:1px solid rgba(181,146,74,.4);border-radius:4px;padding:2px 6px;white-space:nowrap}
+.cpbar{margin-top:12px}.cptrack{width:100%;height:3px;background:var(--silk);border-radius:2px;overflow:hidden;margin-bottom:5px}
+.cpfill{height:100%;background:var(--sage);border-radius:2px;transition:width .4s ease}.cplbl{font-size:10px;color:var(--muted);text-align:center;letter-spacing:.1em}
+
+/* glass */
+.glassbtns{display:flex;gap:8px;margin-top:8px}
+.gbtn{flex:1;padding:13px;border-radius:10px;font-size:13px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;border:1.5px solid var(--silk);background:var(--paper);color:var(--warm)}
+.gbtn.on{border-color:var(--charcoal);background:var(--charcoal);color:var(--paper)}
+.divider{width:100%;height:1px;background:var(--silk);margin:18px 0}
+
+/* buttons */
+.bp{width:100%;padding:15px;background:var(--charcoal);color:var(--paper);border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;letter-spacing:.08em;cursor:pointer;margin-top:22px;transition:all .2s}
+.bp:hover{background:var(--ink);transform:translateY(-1px)}.bp:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.bs{width:100%;padding:13px;background:none;color:var(--muted);border:1.5px solid var(--silk);border-radius:12px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;margin-top:9px;transition:all .2s}
+.bs:hover{border-color:var(--stone);color:var(--warm)}
+.bsage{width:100%;padding:15px;background:var(--sage);color:#fff;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-top:22px;transition:all .2s}
+.bsage:hover{background:var(--matcha)}
+
+/* summary */
+.ssec{margin-bottom:14px;background:var(--white);border-radius:14px;padding:20px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.stitle{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.stitle::after{content:'';flex:1;height:1px;background:var(--silk)}
+.srow2{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--rice);font-size:13px}
+.srow2:last-child{border-bottom:none}
+.sk{color:var(--warm)}.sv{font-weight:500;color:var(--ink)}.stot{font-size:19px;font-weight:600;color:var(--charcoal)}
+.ok{color:var(--matcha);font-weight:600}.ng{color:var(--terra);font-weight:600}
+.linebox{background:var(--paper);border:1.5px solid var(--silk);border-radius:12px;padding:18px;font-size:12px;line-height:1.9;color:var(--warm);white-space:pre-wrap;font-family:'Noto Serif JP',sans-serif;margin-bottom:10px}
+.copybtn{width:100%;padding:13px;background:var(--sage);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;letter-spacing:.08em;transition:all .2s}
+.copybtn.done{background:var(--charcoal)}
+.actrow{display:flex;gap:8px;margin-top:9px}.actrow .bs{margin-top:0;flex:1}
+.bcsvl{flex:1;padding:13px;background:none;color:var(--muted);border:1.5px solid var(--silk);border-radius:12px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .2s}
+.bcsvl:hover{border-color:var(--sage);color:var(--sage)}
+.send-status{text-align:center;margin-top:12px;font-size:12px;color:var(--muted);min-height:18px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--charcoal);color:var(--paper);padding:11px 22px;border-radius:50px;font-size:12px;letter-spacing:.08em;transition:transform .3s;z-index:999;white-space:nowrap;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+@media(max-width:400px){.bills{grid-template-columns:1fr}.ci{padding:22px 16px}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="hdr-sub">Daily Report</div>
+    <div class="hdr-title" id="hdr-title">BAR NIGHT</div>
+  </div>
+  <div class="hdr-date" id="hdate"></div>
+</div>
+
+<div class="prog-wrap">
+  <div class="prog-top">
+    <span id="plabel">STEP 1 / 11</span>
+    <div class="dots" id="dots"></div>
+  </div>
+  <div class="prog-track"><div class="prog-fill" id="pfill"></div></div>
+</div>
+
+<div class="card" id="card"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SAFE_TARGET = 66500;
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyU2sYZ0Ru5YhNAztmd9UoRhY2WVCyXTYsBXO_AgvrhuTUV8xTYTPWDv5CBVLiw0v01/exec';
+const SHOPS  = ['雨','々'];
+const FIXED  = [{name:'氷カット',unit:'袋'},{name:'丸氷',unit:'袋'},{name:'炭酸',unit:'ケース'}];
+const DROPS  = ['タオル','おしぼり','ナッツ','ビーバー','ゴミ袋','洗剤'];
+const LEVELS = ['少ない','無し'];
+const STEPS  = ['shop','basic','groups','tickets','sales','safe','orders','remind','check','handover','summary'];
+
+const S = {
+  shop:'', date:'', staffList:[''], groups:'',
+  tickets:[], cash:'', card:'', other:'',
+  bills:{10000:0,5000:0,1000:0,500:0,100:0,50:0,10:0,5:0,1:0},
+  diffReason:'',
+  fix:{'氷カット':'','丸氷':'','炭酸':''},
+  drops:[{name:'',level:''}], frees:[],
+  chk:{}, glassOk:null, memo:''
+};
+
+let tNo='', tAmt='', tPay='';
+let st = 0;
+
+const td  = ()=>{const d=new Date();return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;};
+const p   = n=>String(n).padStart(2,'0');
+const fd  = s=>{if(!s)return '';const[y,m,d]=s.split('-');return `${y}年${+m}月${+d}日`;};
+const cn  = n=>Number(n||0).toLocaleString('ja-JP');
+const fy  = n=>cn(n)+'円';
+const totSales    = ()=>(+S.cash||0)+(+S.card||0)+(+S.other||0);
+const safeTot     = ()=>[10000,5000,1000,500,100,50,10,5,1].reduce((a,b)=>a+b*(+S.bills[b]||0),0);
+const safeDif     = ()=>safeTot()-SAFE_TARGET;
+const isFirst     = ()=>new Date(S.date||td()).getDate()===1;
+const ticketByPay = pay=>S.tickets.filter(t=>t.pay===pay).reduce((a,t)=>a+(+t.amt||0),0);
+const ticketTot   = ()=>ticketByPay('cash')+ticketByPay('card')+ticketByPay('other');
+const staffNames  = ()=>S.staffList.filter(s=>s.trim());
+
+const chkItems = ()=>{
+  const a=[
+    {id:'soda',lbl:'炭酸補充'},{id:'ac',lbl:'エアコン切る'},
+    {id:'heat',lbl:'暖房のコンセント抜く'},{id:'chg',lbl:'充電器のコンセント抜く'},
+    {id:'fridge',lbl:'冷蔵庫閉まってるか確認'},{id:'light',lbl:'電気消す'},{id:'lock',lbl:'戸締り＆鍵戻す'},
+  ];
+  if(isFirst()) a.push({id:'sponge',lbl:'スポンジ交換',mo:true});
+  return a;
+};
+
+function updProg(){
+  const pct=((st+1)/STEPS.length*100).toFixed(0);
+  document.getElementById('pfill').style.width=pct+'%';
+  document.getElementById('plabel').textContent=`STEP ${st+1} / ${STEPS.length}`;
+  document.getElementById('dots').innerHTML=STEPS.map((_,i)=>{
+    const c=i<st?'done':i===st?'active':'';return `<div class="dot ${c}"></div>`;
+  }).join('');
+  // ヘッダーに店舗名表示
+  const ht=document.getElementById('hdr-title');
+  if(ht) ht.textContent=S.shop?`BAR ${S.shop}`:'BAR NIGHT';
+}
+
+function render(){
+  updProg();
+  const d=new Date();
+  document.getElementById('hdate').textContent=`${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())}`;
+  const c=document.getElementById('card');
+  const inner=document.createElement('div');inner.className='ci';
+  inner.innerHTML=({shop,basic,groups,tickets,sales,safe,orders,remind,check,handover,summary})[STEPS[st]]();
+  c.innerHTML='';c.appendChild(inner);
+  c.style.animation='none';requestAnimationFrame(()=>{c.style.animation='';c.className='card';});
+}
+
+/* ══════════ STEPS ══════════ */
+
+function shop(){
+  return `
+  <div class="stag">店舗選択</div>
+  <div class="qlabel">本日の店舗を<br>選択してください</div>
+  <div style="margin-top:16px">
+    ${SHOPS.map(name=>`
+      <button class="shop-btn ${S.shop===name?'on':''}" onclick="selectShop('${name}')">${name}</button>
+    `).join('')}
+  </div>
+  <button class="bp" id="btn-shop-next" onclick="go('shop')" ${S.shop?'':'disabled'}>次へ →</button>`;}
+
+function basic(){
+  const rows=S.staffList.map((nm,i)=>`
+    <div class="staff-row">
+      <input class="staff-input" type="text" placeholder="担当者名${i+1}" value="${nm}"
+        data-si="${i}" oninput="S.staffList[+this.dataset.si]=this.value">
+      ${S.staffList.length>1?`<button class="staff-del" onclick="delStaff(${i})">×</button>`:''}
+    </div>`).join('');
+  return `
+  <div class="stag">基本情報</div>
+  <div class="qlabel">日付と担当者名を<br>教えてください</div>
+  <div class="qhint">複数人の場合は追加してください</div>
+  <div style="margin-bottom:10px"><input type="date" id="idate" value="${S.date||td()}"></div>
+  <div class="staff-list">${rows}</div>
+  <button class="addbtn" onclick="addStaff()" style="margin-bottom:0">＋ 担当者を追加</button>
+  <button class="bp" onclick="go('basic')">次へ →</button>
+  <button class="bs" onclick="back()">← 戻る</button>`;}
+
+function groups(){return `
+  <div class="stag">来店情報</div>
+  <div class="qlabel">本日の組数は？</div>
+  <div class="qhint">グループ数を入力してください</div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <input type="number" id="igrp" placeholder="0" min="0" value="${S.groups}"
+      style="font-size:34px;font-weight:500;text-align:center;padding:18px">
+    <span style="font-size:15px;color:var(--muted);flex-shrink:0">組</span>
+  </div>
+  <button class="bp" onclick="go('groups')">次へ →</button>
+  <button class="bs" onclick="back()">← 戻る</button>`;}
+
+function tickets(){
+  const listHTML=S.tickets.length===0
+    ?`<div class="ts-empty">まだ伝票がありません</div>`
+    :S.tickets.map((t,i)=>`
+      <div class="ticket-item ${t.pay}">
+        <span class="ticket-no-disp">No.${t.no||'―'}</span>
+        <span class="ticket-type-badge">${{cash:'現金',card:'カード',other:'その他'}[t.pay]}</span>
+        <span class="ticket-amt-disp">${cn(t.amt)}円</span>
+        <button class="ticket-del" onclick="delTicket(${i})">×</button>
+      </div>`).join('');
+  const cash=ticketByPay('cash'),card=ticketByPay('card'),other=ticketByPay('other'),tot=ticketTot();
+  const summaryHTML=S.tickets.length>0?`
+    <div class="ticket-summary">
+      <div class="ts-row ts-cash"><span class="ts-label">💵 現金</span><span class="ts-val">${cn(cash)}円</span></div>
+      <div class="ts-row ts-card"><span class="ts-label">💳 カード</span><span class="ts-val">${cn(card)}円</span></div>
+      <div class="ts-row ts-other"><span class="ts-label">📱 その他</span><span class="ts-val">${cn(other)}円</span></div>
+      <div class="ts-row ts-total"><span class="ts-label">TOTAL</span><span class="ts-val">${cn(tot)}円</span></div>
+    </div>`:'';
+  return `
+  <div class="stag">伝票入力</div>
+  <div class="qlabel">伝票を入力してください</div>
+  <div class="qhint">1件ずつ追加します</div>
+  <div class="ticket-input-area">
+    <div class="ticket-row">
+      <input class="ticket-no" type="text" id="tNo" placeholder="伝票No." value="${tNo}" oninput="tNo=this.value">
+      <input class="ticket-amt" type="number" id="tAmt" placeholder="金額" min="0" value="${tAmt}" oninput="tAmt=this.value">
+    </div>
+    <div class="pay-btns">
+      <button class="pay-btn cash ${tPay==='cash'?'on':''}" onclick="setPay('cash')">💵 現金</button>
+      <button class="pay-btn card ${tPay==='card'?'on':''}" onclick="setPay('card')">💳 カード</button>
+      <button class="pay-btn other ${tPay==='other'?'on':''}" onclick="setPay('other')">📱 その他</button>
+    </div>
+    <button class="add-ticket-btn" onclick="addTicket()">＋ 伝票を追加</button>
+  </div>
+  <div class="ticket-list">${listHTML}</div>
+  ${summaryHTML}
+  <button class="bp" onclick="go('tickets')">次へ →</button>
+  <button class="bs" onclick="back()">← 戻る</button>`;}
+
+function sales(){
+  const dCash=S.cash||(S.tickets.length?String(ticketByPay('cash')):'');
+  const dCard=S.card||(S.tickets.length?String(ticketByPay('card')):'');
+  const dOther=S.other||(S.tickets.length?String(ticketByPay('other')):'');
+  const tot=(+dCash||0)+(+dCard||0)+(+dOther||0);
+  const has=S.tickets.length>0;
+  return `
+  <div class="stag">売上確認</div>
+  <div class="qlabel">売上金額を<br>確認してください</div>
+  ${has?'<div class="from-ticket-hint">✦ 伝票から自動反映されています</div>':'<div class="qhint">支払い方法別に入力してください</div>'}
+  <div class="srow"><span class="sicon">💵</span><span class="slabel">現金</span>
+    <input class="sinput" type="number" id="icash" placeholder="0" min="0" value="${dCash}" oninput="cSales()">
+    <span class="sunit">円</span></div>
+  <div class="srow"><span class="sicon">💳</span><span class="slabel">カード</span>
+    <input class="sinput" type="number" id="icard" placeholder="0" min="0" value="${dCard}" oninput="cSales()">
+    <span class="sunit">円</span></div>
+  <div class="srow"><span class="sicon">📱</span><span class="slabel">その他</span>
+    <input class="sinput" type="number" id="iother" placeholder="0" min="0" value="${dOther}" oninput="cSales()">
+    <span class="sunit">円</span></div>
+  <div class="stotal"><span class="stotal-l">TOTAL</span><span class="stotal-v" id="stotv">${tot.toLocaleString()} 円</span></div>
+  <button class="bp" onclick="go('sales')">次へ →</button>
+  <button class="bs" onclick="back()">← 戻る</button>`;}
+
+function safe(){
+  const bs=[10000,5000,1000,500,100,50,10,5,1];
+  const lb={10000:'¥10,000',5000:'¥5,000',1000:'¥1,000',500:'¥500',100:'¥100',50:'¥50',10:'¥10',5:'¥5',1:'¥1'};
+  const grid=bs.map(b=>`
+    <div class="brow"><span class="bdenom">${lb[b]}</span>
+      <input class="binput" type="number" data-b="${b}" placeholder="0" min="0" value="${S.bills[b]||''}" oninput="cSafe()">
+      <span class="bunit">枚</span></div>`).join('');
+  const tot=safeTot(),dif=tot-SAFE_TARGET,ok=dif===0;
+  const dtxt=dif===0?'差異なし ✓':(dif>0?`+${dif.toLocaleString()} 円`:`${dif.toLocaleString()} 円`);
+  return `
+  <div class="stag">金庫確認</div>
+  <div class="qlabel">金庫の釣り銭を<br>確認してください</div>
+  <div style="font-size:11px;color:var(--muted);text-align:right;margin-bottom:11px">目標釣り銭額：<strong style="color:var(--warm)">¥${SAFE_TARGET.toLocaleString()}</strong></div>
+  <div class="bills">${grid}</div>
+  <div class="sresult ${ok?'sok':'sng'}" id="sbox">
+    <span class="srlabel">合計 <span id="stv">${tot.toLocaleString()}</span> 円</span>
+    <span class="srval" id="sdv">${dtxt}</span>
+  </div>
+  <div id="rwrap" style="${ok?'display:none':''}">
+    <div style="font-size:11px;color:var(--muted);margin:12px 0 6px">差異の理由（任意）</div>
+    <textarea id="idiff" placeholder="例）両替対応あり、釣り銭不足など">${S.diffReason}</textarea>
+  </div>
+  <button class="bp" onclick="go('safe')">次へ →</button>
+  <button class="bs" onclick="back()">← 戻る</button>`;}
+
+function orders(){
+  const fixH=FIXED.map(({name,unit})=>`
+    <div class="orow"><span class="oname">${name}</span>
+      <div class="fix-qty-wrap">
+        <input class="fix-qty" type="number" placeholder="0" min="0" value="${S.fix[name]||''}" data-fn="${name}" oninput="uFix(this)">
+        <span class="fix-unit">${unit}</span>
+      </div></div>`).join('');
+  const dropH=S.drops.map((o,i)=>`
+    <div class="orow" id="dr${i}">
+      <select class="drop-select" data-di="${i}" onchange="uDrop(this,'name')">
+        <option value="">選択してください</option>
+        ${DROPS.map(op=>`<option ${o.name===op?'selected':''}>${op}</option>`).join('')}
+      </select>
+      <div class="level-wrap">
+        ${LEVELS.map(lv=>`<button class="lvl-btn ${o.level===lv?'on':''}" onclick="setLevel(${i},'${lv}')">${lv}</button>`).join('')}
+      </div>
+      ${S.drops.length>1?`<button class="delbtn" onclick="dDrop(${i})">×</button>`:''}
+    </div>`).join('');
+  const freeH=S.frees.map((o,i)=>`
+    <div class="orow" id="fr${i}">
+      <input class="free-name" type="text" placeholder="商品名" value="${o.name}" data-fi="${i}" oninput="uFree(this,'name')">
+      <input class="free-qty" type="text" placeholder="数量・メモ" value="${o.qty}" data-fi="${i}" oninput="uFree(this,'qty')">
+      <button class="delbtn" onclick="dFree(${i})">×</button>
+    </div>`).join('');
+  return `
+  <div class="stag">発注入力</div>
+  <div class="qlabel">発注数量を<br>入力してください</div>
+  <div class="qhint">0・未入力は日報に記載されません</div>
+  ${fixH}
+  <div style="height:8px"></div>${dropH}
+  <button class="addbtn" onclick="aDrop()">＋ プルダウンを追加</button>
+  <div style="height:4px"></div>${freeH}
+  <button class="addbtn" onclick="aFree()">＋ その他を追加</button>
+  <button class="bp" onclick="go('orders')">発注入力を完了する →</button>
+  <button class="bs" onclick="back()">← 戻る</button>`;}
+
+function remind(){return `
+  <div class="stag">発注リマインド</div>
+  <div class="rbox">
+    <div class="ricon">📦</div>
+    <div class="rtext">備品・ボトルの発注<br>し忘れはありませんか？</div>
+    <div class="rsub">今一度、在庫を確認してください</div>
+  </div>
+  <button class="bsage" onclick="go('remind')">確認OK！ →</button>
+  <button class="bs" onclick="back()">← 発注をやり直す</button>`;}
+
+function check(){
+  const items=chkItems();
+  const done=items.filter(it=>S.chk[it.id]).length,total=items.length;
+  const pct=total?Math.round(done/total*100):0;
+  const rows=items.map(it=>{const on=!!S.chk[it.id];return `
+    <div class="chkitem ${on?'on':''} ${it.mo?'monthly':''}" onclick="tChk('${it.id}')">
+      <div class="chkbox">${on?'✓':''}</div>
+      <span class="chklbl">${it.lbl}</span>
+      ${it.mo?'<span class="mbadge">月初</span>':''}
+    </div>`;}).join('');
+  return `
+  <div class="stag">退勤前チェック</div>
+  <div class="qlabel">帰る前の確認を<br>してください</div>
+  <div class="qhint">全項目チェックで次へ進めます</div>
+  <div class="chklist">${rows}</div>
+  <div class="cpbar">
+    <div class="cptrack"><div class="cpfill" style="width:${pct}%"></div></div>
+    <div class="cplbl">${done} / ${total} 完了</div>
+  </div>
+  <button class="bp" id="bcnxt" onclick="go('check')" ${done===total?'':'disabled'}>次へ →</button>
+  <button class="bs" onclick="back()">← 戻る</button>`;}
+
+function handover(){return `
+  <div class="stag">引き継ぎ</div>
+  <div class="qlabel">引き継ぎ事項を<br>確認してください</div>
+  <div style="margin-bottom:20px">
+    <div style="font-size:13px;color:var(--warm);font-weight:500;margin-bottom:8px">🥂 グラスの洗い残しはありますか？</div>
+    <div class="glassbtns">
+      <button class="gbtn ${S.glassOk===false?'on':''}" onclick="setGlass(false)">✓ なし（きれい）</button>
+      <button class="gbtn ${S.glassOk===true?'on':''}" onclick="setGlass(true)">⚠️ あり（要確認）</button>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div style="font-size:13px;color:var(--warm);font-weight:500;margin-bottom:6px">📝 特記事項・引き継ぎ</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5">なければ空白でOK</div>
+  <textarea id="imemo" placeholder="例）席Cのクーラーが効きすぎているため確認をお願いします">${S.memo}</textarea>
+  <button class="bp" onclick="go('handover')">日報を完成させる ✦</button>
+  <button class="bs" onclick="back()">← 戻る</button>`;}
+
+function summary(){
+  const tot=totSales(),dif=safeDif(),ok=dif===0;
+  const dlbl=dif===0?'差異なし':(dif>0?`+${dif.toLocaleString()}円 超過`:`${Math.abs(dif).toLocaleString()}円 不足`);
+  const allOrd=[];
+  FIXED.forEach(({name,unit})=>{const q=+S.fix[name]||0;if(q>0)allOrd.push(`${name} ${q}${unit}`);});
+  S.drops.forEach(o=>{if(o.name&&o.level)allOrd.push(`${o.name} ${o.level}`);});
+  S.frees.forEach(o=>{if(o.name)allOrd.push(`${o.name}${o.qty?' '+o.qty:''}`);});
+  const ordRows=allOrd.length
+    ?allOrd.map(t=>`<div class="srow2"><span class="sk">${t}</span></div>`).join('')
+    :'<div style="font-size:12px;color:var(--stone);padding:3px 0">なし</div>';
+  const gtxt=S.glassOk===null?'未確認':S.glassOk?'あり（要確認）':'なし（きれい）';
+  const gcls=S.glassOk?'ng':'ok';
+  const ticketSection=S.tickets.length>0?`
+  <div class="ssec">
+    <div class="stitle">伝票集計</div>
+    ${S.tickets.map(t=>`
+      <div class="srow2">
+        <span class="sk">No.${t.no||'―'}</span>
+        <span class="sv" style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:10px;color:var(--muted)">${{cash:'現金',card:'カード',other:'その他'}[t.pay]}</span>
+          ${cn(t.amt)}円
+        </span>
+      </div>`).join('')}
+    <div class="srow2" style="padding-top:9px;border-top:1px solid var(--silk);margin-top:3px">
+      <span class="sk">現金小計</span><span class="sv">${cn(ticketByPay('cash'))}円</span>
+    </div>
+    <div class="srow2"><span class="sk">カード小計</span><span class="sv">${cn(ticketByPay('card'))}円</span></div>
+    <div class="srow2"><span class="sk">その他小計</span><span class="sv">${cn(ticketByPay('other'))}円</span></div>
+    <div class="srow2" style="padding-top:9px;border-top:1px solid var(--silk);margin-top:3px">
+      <span class="sk" style="font-weight:600">合計</span><span class="stot">${cn(ticketTot())}円</span>
+    </div>
+  </div>`:'';
+  return `
+  <div class="stag">日報完成</div>
+  <div class="qlabel" style="margin-bottom:18px">本日もお疲れ様でした ✦</div>
+  <div class="ssec">
+    <div class="stitle">基本情報</div>
+    <div class="srow2"><span class="sk">店舗</span><span class="sv">${S.shop}</span></div>
+    <div class="srow2"><span class="sk">日付</span><span class="sv">${fd(S.date)}</span></div>
+    <div class="srow2"><span class="sk">担当者</span><span class="sv">${staffNames().join('・')}</span></div>
+    <div class="srow2"><span class="sk">来店組数</span><span class="sv">${S.groups}組</span></div>
+  </div>
+  ${ticketSection}
+  <div class="ssec">
+    <div class="stitle">売上合計</div>
+    <div class="srow2"><span class="sk">現金</span><span class="sv">${fy(S.cash)}</span></div>
+    <div class="srow2"><span class="sk">カード</span><span class="sv">${fy(S.card)}</span></div>
+    <div class="srow2"><span class="sk">その他</span><span class="sv">${fy(S.other)}</span></div>
+    <div class="srow2" style="padding-top:9px;border-top:1px solid var(--silk);margin-top:3px">
+      <span class="sk" style="font-weight:600">合計</span><span class="stot">${tot.toLocaleString()} 円</span>
+    </div>
+  </div>
+  <div class="ssec">
+    <div class="stitle">金庫確認</div>
+    <div class="srow2"><span class="sk">実際の釣り銭</span><span class="sv">${safeTot().toLocaleString()} 円</span></div>
+    <div class="srow2"><span class="sk">目標釣り銭</span><span class="sv">${SAFE_TARGET.toLocaleString()} 円</span></div>
+    <div class="srow2"><span class="sk">差異</span><span class="${ok?'ok':'ng'}">${dlbl}</span></div>
+    ${!ok&&S.diffReason?`<div class="srow2"><span class="sk">理由</span><span class="sv" style="font-size:12px">${S.diffReason}</span></div>`:''}
+  </div>
+  <div class="ssec"><div class="stitle">発注リスト</div>${ordRows}</div>
+  <div class="ssec">
+    <div class="stitle">引き継ぎ</div>
+    <div class="srow2"><span class="sk">グラス洗い残し</span><span class="${gcls}">${gtxt}</span></div>
+    ${S.memo?`<div style="margin-top:7px;font-size:13px;color:var(--warm);line-height:1.7">${S.memo.replace(/\n/g,'<br>')}</div>`:''}
+  </div>
+  <div class="ssec">
+    <div class="stitle">LINE 送信テンプレ</div>
+    <div class="linebox">${buildLine()}</div>
+    <button class="copybtn" id="cbtn" onclick="cpLine()">📋 LINEテンプレをコピー</button>
+  </div>
+  <div class="send-status" id="send-status">📤 スプレッドシートに送信中...</div>
+  <div class="actrow">
+    <button class="bcsvl" onclick="expCSV()">📊 Excel出力</button>
+    <button class="bs" onclick="resetAll()">新しい日報</button>
+  </div>`;}
+
+/* ══════════ INTERACTIONS ══════════ */
+
+function selectShop(name){
+  S.shop=name;
+  document.querySelectorAll('.shop-btn').forEach(btn=>{
+    const on=btn.textContent.trim()===name;
+    btn.classList.toggle('on',on);
+  });
+  const nb=document.getElementById('btn-shop-next');
+  if(nb) nb.disabled=false;
+}
+
+function addStaff(){S.staffList.push('');render();setTimeout(()=>{const els=document.querySelectorAll('.staff-input');if(els.length)els[els.length-1].focus();},50);}
+function delStaff(i){S.staffList.splice(i,1);render();}
+
+function setPay(v){
+  tPay=v;
+  document.querySelectorAll('.pay-btn').forEach(b=>{b.classList.toggle('on',b.classList.contains(v));});
+}
+
+function addTicket(){
+  const no=document.getElementById('tNo')?.value?.trim()||'';
+  const amt=document.getElementById('tAmt')?.value||'';
+  if(!amt||+amt<=0){shToast('金額を入力してください');return;}
+  if(!tPay){shToast('支払い方法を選択してください');return;}
+  S.tickets.push({no,amt,pay:tPay});
+  tNo='';tAmt='';tPay='';
+  render();
+  setTimeout(()=>document.getElementById('tNo')?.focus(),50);
+}
+
+function delTicket(i){S.tickets.splice(i,1);render();}
+
+function cSales(){
+  const c=+document.getElementById('icash')?.value||0;
+  const k=+document.getElementById('icard')?.value||0;
+  const o=+document.getElementById('iother')?.value||0;
+  const el=document.getElementById('stotv');if(el)el.textContent=(c+k+o).toLocaleString()+' 円';
+}
+
+function cSafe(){
+  [10000,5000,1000,500,100,50,10,5,1].forEach(b=>{
+    const el=document.querySelector(`[data-b="${b}"]`);if(el)S.bills[b]=+el.value||0;
+  });
+  const tot=safeTot(),dif=tot-SAFE_TARGET,ok=dif===0;
+  const bx=document.getElementById('sbox');
+  if(bx){
+    bx.className='sresult '+(ok?'sok':'sng');
+    document.getElementById('stv').textContent=tot.toLocaleString();
+    document.getElementById('sdv').textContent=dif===0?'差異なし ✓':(dif>0?`+${dif.toLocaleString()} 円`:`${dif.toLocaleString()} 円`);
+  }
+  const rw=document.getElementById('rwrap');if(rw)rw.style.display=ok?'none':'';
+}
+
+function uFix(el){S.fix[el.dataset.fn]=el.value;}
+function aDrop(){S.drops.push({name:'',level:''});render();}
+function dDrop(i){S.drops.splice(i,1);if(S.drops.length===0)S.drops.push({name:'',level:''});render();}
+function uDrop(el,f){S.drops[+el.dataset.di][f]=el.value;}
+function setLevel(i,lv){
+  S.drops[i].level=S.drops[i].level===lv?'':lv;
+  const wrap=document.querySelector(`#dr${i} .level-wrap`);
+  if(wrap)wrap.innerHTML=LEVELS.map(l=>`<button class="lvl-btn ${S.drops[i].level===l?'on':''}" onclick="setLevel(${i},'${l}')">${l}</button>`).join('');
+}
+function aFree(){S.frees.push({name:'',qty:''});render();setTimeout(()=>{const s=document.querySelectorAll('.free-name');if(s.length)s[s.length-1].focus();},50);}
+function dFree(i){S.frees.splice(i,1);render();}
+function uFree(el,f){S.frees[+el.dataset.fi][f]=el.value;}
+
+function tChk(id){
+  S.chk[id]=!S.chk[id];
+  const items=chkItems(),done=items.filter(it=>S.chk[it.id]).length,total=items.length;
+  const el=document.querySelector(`[onclick="tChk('${id}')"]`);
+  if(el){
+    const on=S.chk[id];el.classList.toggle('on',on);
+    el.querySelector('.chkbox').textContent=on?'✓':'';
+    const lbl=el.querySelector('.chklbl');
+    lbl.style.textDecoration=on?'line-through':'none';
+    lbl.style.color=on?'var(--stone)':'var(--warm)';
+  }
+  const f=document.querySelector('.cpfill'),l=document.querySelector('.cplbl'),b=document.getElementById('bcnxt');
+  const pct=total?Math.round(done/total*100):0;
+  if(f)f.style.width=pct+'%';if(l)l.textContent=`${done} / ${total} 完了`;if(b)b.disabled=done!==total;
+}
+function setGlass(v){S.glassOk=v;render();}
+
+/* ══════════ NAVIGATION ══════════ */
+function go(s){
+  if(s==='shop'){
+    if(!S.shop){shToast('店舗を選択してください');return;}
+  }else if(s==='basic'){
+    document.querySelectorAll('.staff-input').forEach((el,i)=>{S.staffList[i]=el.value;});
+    if(staffNames().length===0){shToast('担当者名を入力してください');return;}
+    S.date=document.getElementById('idate')?.value||td();
+  }else if(s==='groups'){
+    S.groups=document.getElementById('igrp')?.value||'0';
+  }else if(s==='sales'){
+    S.cash=document.getElementById('icash')?.value||'0';
+    S.card=document.getElementById('icard')?.value||'0';
+    S.other=document.getElementById('iother')?.value||'0';
+  }else if(s==='safe'){
+    const r=document.getElementById('idiff');if(r)S.diffReason=r.value;
+  }else if(s==='handover'){
+    if(S.glassOk===null){shToast('グラスの状態を選択してください');return;}
+    S.memo=document.getElementById('imemo')?.value||'';
+    setTimeout(()=>sendToSheet(),500);
+  }
+  st=Math.min(st+1,STEPS.length-1);render();window.scrollTo({top:0,behavior:'smooth'});
+}
+function back(){st=Math.max(st-1,0);render();window.scrollTo({top:0,behavior:'smooth'});}
+
+/* ══════════ LINE ══════════ */
+function buildLine(){
+  const tot=totSales(),dif=safeDif();
+  const dtxt=dif===0?'差異なし ✓':(dif>0?`超過 +${dif.toLocaleString()}円`:`不足 ${Math.abs(dif).toLocaleString()}円`);
+  const ords=[];
+  FIXED.forEach(({name,unit})=>{const q=+S.fix[name]||0;if(q>0)ords.push(`  ・${name}　${q}${unit}`);});
+  S.drops.forEach(o=>{if(o.name&&o.level)ords.push(`  ・${o.name}　${o.level}`);});
+  S.frees.forEach(o=>{if(o.name)ords.push(`  ・${o.name}${o.qty?' '+o.qty:''}`);});
+  const ordtxt=ords.length?ords.join('\n'):'  なし';
+  const gtxt=S.glassOk===null?'未確認':S.glassOk?'あり（要確認）⚠️':'なし ✓';
+  const rtxt=dif!==0&&S.diffReason?`\n  理由：${S.diffReason}`:'';
+  const mtxt=S.memo?`\n📝 引き継ぎ\n${S.memo}`:'';
+  return `【日報】${fd(S.date)}　${S.shop}\n担当：${staffNames().join('・')}\n\n📊 売上\n  現金　　${cn(+S.cash||0)}円\n  カード　${cn(+S.card||0)}円\n  その他　${cn(+S.other||0)}円\n  ─────────\n  合計　　${cn(tot)}円\n\n👥 来店：${S.groups}組\n\n🔐 金庫確認\n  実在庫　${cn(safeTot())}円\n  差異　　${dtxt}${rtxt}\n\n📦 発注\n${ordtxt}\n\n🥂 グラス洗い残し：${gtxt}${mtxt}\n\n以上です。お疲れ様でした 🌙`;
+}
+
+function cpLine(){
+  navigator.clipboard.writeText(buildLine()).then(()=>{
+    const b=document.getElementById('cbtn');
+    if(b){b.textContent='✓ コピーしました';b.classList.add('done');}
+    shToast('コピーしました！');
+    setTimeout(()=>{if(b){b.textContent='📋 LINEテンプレをコピー';b.classList.remove('done');}},2000);
+  }).catch(()=>shToast('コピーできませんでした'));
+}
+
+/* ══════════ CSV ══════════ */
+function expCSV(){
+  const dif=safeDif();
+  const ords=[];
+  FIXED.forEach(({name,unit})=>{const q=+S.fix[name]||0;if(q>0)ords.push([name,`${q}${unit}`]);});
+  S.drops.forEach(o=>{if(o.name&&o.level)ords.push([o.name,o.level]);});
+  S.frees.forEach(o=>{if(o.name)ords.push([o.name,o.qty||'']);});
+  const gtxt=S.glassOk===null?'未確認':S.glassOk?'あり（要確認）':'なし（きれい）';
+  const ticketRows=S.tickets.map(t=>['No.'+t.no,{cash:'現金',card:'カード',other:'その他'}[t.pay],+t.amt||0]);
+  const rows=[
+    ['BAR NIGHT REPORT'],[''],
+    ['店舗',S.shop],['日付',fd(S.date)],['担当者',staffNames().join('・')],['来店組数',S.groups+'組'],[''],
+    ['== 伝票明細 =='],['伝票No.','支払い','金額'],
+    ...(ticketRows.length?ticketRows:[['なし','','']]),
+    ['','現金小計',ticketByPay('cash')],['','カード小計',ticketByPay('card')],['','その他小計',ticketByPay('other')],['','合計',ticketTot()],[''],
+    ['== 売上 =='],['現金',+S.cash||0],['カード',+S.card||0],['その他',+S.other||0],['合計',totSales()],[''],
+    ['== 金庫確認 =='],['実際の釣り銭',safeTot()],['目標釣り銭',SAFE_TARGET],['差異',dif],
+    ...(S.diffReason?[['差異の理由',S.diffReason]]:[]),[''],
+    ['== 発注リスト =='],['商品名','数量・レベル'],
+    ...(ords.length?ords:[['なし','']]),[''],
+    ['== 引き継ぎ =='],['グラス洗い残し',gtxt],
+    ...(S.memo?[['特記事項',S.memo]]:[])
+  ];
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download=`bar_report_${S.shop}_${S.date||td()}.csv`;a.click();
+  URL.revokeObjectURL(url);shToast('Excelファイルを出力しました');
+}
+
+/* ══════════ SHEET ══════════ */
+function sendToSheet(){
+  const status=document.getElementById('send-status');
+  const ords=[];
+  FIXED.forEach(({name,unit})=>{const q=+S.fix[name]||0;if(q>0)ords.push(`${name} ${q}${unit}`);});
+  S.drops.forEach(o=>{if(o.name&&o.level)ords.push(`${o.name} ${o.level}`);});
+  S.frees.forEach(o=>{if(o.name)ords.push(`${o.name}${o.qty?' '+o.qty:''}`);});
+  const ticketDetail=S.tickets.map(t=>`No.${t.no||'―'}(${({cash:'現金',card:'カード',other:'その他'})[t.pay]})${t.amt}円`).join('、');
+  const payload={
+    shop:S.shop,
+    date:fd(S.date),staff:staffNames().join('・'),groups:S.groups,
+    cash:+S.cash||0,card:+S.card||0,other:+S.other||0,totalSales:totSales(),
+    ticketCash:ticketByPay('cash'),ticketCard:ticketByPay('card'),
+    ticketOther:ticketByPay('other'),ticketTotal:ticketTot(),
+    ticketDetail:ticketDetail||'なし',
+    safeActual:safeTot(),safeDiff:safeDif(),diffReason:S.diffReason||'',
+    orders:ords.join('、')||'なし',
+    glass:S.glassOk===null?'未確認':S.glassOk?'あり（要確認）':'なし（きれい）',
+    memo:S.memo||''
+  };
+  const enc=encodeURIComponent(JSON.stringify(payload));
+  const cbName='gasCallback_'+Date.now();
+  const timer=setTimeout(()=>{cleanup();done();},8000);
+  function cleanup(){clearTimeout(timer);delete window[cbName];const old=document.getElementById('gasScript');if(old)old.remove();}
+  function done(){if(status){status.textContent='✓ スプレッドシートに記録されました';status.style.color='var(--matcha)';}}
+  window[cbName]=()=>{cleanup();done();};
+  const script=document.createElement('script');
+  script.id='gasScript';script.src=GAS_URL+'?callback='+cbName+'&data='+enc;
+  script.onerror=()=>{cleanup();done();};
+  document.body.appendChild(script);
+}
+
+/* ══════════ RESET ══════════ */
+function resetAll(){
+  if(!confirm('新しい日報を始めますか？'))return;
+  Object.assign(S,{
+    shop:'',date:'',staffList:[''],groups:'',tickets:[],
+    cash:'',card:'',other:'',
+    bills:{10000:0,5000:0,1000:0,500:0,100:0,50:0,10:0,5:0,1:0},
+    diffReason:'',fix:{'氷カット':'','丸氷':'','炭酸':''},
+    drops:[{name:'',level:''}],frees:[],chk:{},glassOk:null,memo:''
+  });
+  tNo='';tAmt='';tPay='';
+  st=0;render();
+}
+
+function shToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+render();
+</script>
+</body>
+</html>
