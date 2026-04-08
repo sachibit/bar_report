@@ -656,10 +656,6 @@ function shToast(msg){
 // 起動時：下書き確認 → なければ通常表示
 if(!loadDraft()) render();
 else render();
-</script>
-</body>
-</html>
-
 function selectShop(name){
   S.shop=name; STEPS=buildSteps();
   setTimeout(()=>{st=Math.min(st+1,STEPS.length-1);render();window.scrollTo({top:0,behavior:'smooth'});},300);
