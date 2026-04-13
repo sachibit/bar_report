@@ -416,6 +416,8 @@ function safe(){
     </div>`).join('');
 
   const cTot=changeTot(), eTot=exchangeTot(), tot=cTot+eTot;
+  const labelA = S.shop==='雨' ? '夜雨' : '釣り銭';
+  const labelB = S.shop==='雨' ? '昼雨' : '両替用';
   const dif=tot-SAFE_TARGET, ok=dif===0;
   const dtxt=dif===0?'差異なし ✓':(dif>0?`+${dif.toLocaleString()} 円`:`${dif.toLocaleString()} 円`);
 
@@ -423,17 +425,17 @@ function safe(){
   <div class="stag">金庫確認</div>
   <div class="qlabel">金庫の釣り銭を<br>確認してください</div>
 
-  <div class="safe-section-label">釣り銭</div>
+  <div class="safe-section-label">${labelA}</div>
   <div class="bills">${changeGrid}</div>
   <div class="safe-subtotal">
-    <span style="color:var(--warm)">釣り銭合計</span>
+    <span style="color:var(--warm)">${labelA}合計</span>
     <span style="font-weight:600" id="safe-c-tot">${cn(cTot)} 円</span>
   </div>
 
-  <div class="safe-section-label">両替用</div>
+  <div class="safe-section-label">${labelB}</div>
   <div class="bills">${exchGrid}</div>
   <div class="safe-subtotal">
-    <span style="color:var(--warm)">両替用合計</span>
+    <span style="color:var(--warm)">${labelB}合計</span>
     <span style="font-weight:600" id="safe-e-tot">${cn(eTot)} 円</span>
   </div>
 
@@ -597,8 +599,8 @@ function summary(){
       <span class="sk" style="font-weight:600">合計</span><span class="stot">${tot.toLocaleString()} 円</span></div>
   </div>
   <div class="ssec"><div class="stitle">金庫確認</div>
-    <div class="srow2"><span class="sk">釣り銭合計</span><span class="sv">${cn(changeTot())} 円</span></div>
-    <div class="srow2"><span class="sk">両替用合計</span><span class="sv">${cn(exchangeTot())} 円</span></div>
+    <div class="srow2"><span class="sk">${S.shop==='雨'?'夜雨':'釣り銭'}合計</span><span class="sv">${cn(changeTot())} 円</span></div>
+    <div class="srow2"><span class="sk">${S.shop==='雨'?'昼雨':'両替用'}合計</span><span class="sv">${cn(exchangeTot())} 円</span></div>
     <div class="srow2"><span class="sk">金庫合計</span><span class="sv">${cn(safeTot())} 円</span></div>
     <div class="srow2"><span class="sk">目標</span><span class="sv">${cn(SAFE_TARGET)} 円</span></div>
     <div class="srow2"><span class="sk">差異</span><span class="${ok?'ok':'ng'}">${dlbl}</span></div>
@@ -765,7 +767,9 @@ function buildLine(){
     })
     .filter(Boolean).join('\n');
 
-  const safeBlock=`  釣り銭　　${cn(changeTot())}円${changeLines?'\n'+changeLines:''}\n  両替用　　${cn(exchangeTot())}円${exchLines?'\n'+exchLines:''}${needLines?'\n\n📋 補充が必要な金種\n'+needLines:''}`;
+  const lA=S.shop==='雨'?'夜雨':'釣り銭';
+  const lB=S.shop==='雨'?'昼雨':'両替用';
+  const safeBlock=`  ${lA}　　${cn(changeTot())}円${changeLines?'\n'+changeLines:''}\n  ${lB}　　${cn(exchangeTot())}円${exchLines?'\n'+exchLines:''}${needLines?'\n\n📋 補充が必要な金種\n'+needLines:''}`;
 
   return `【日報】${fd(S.date)}　${S.shop}\n担当：${S.staff.join('・')}\n\n📊 売上\n  現金　　${cn(salesCash())}円\n  カード　${cn(salesCard())}円\n  その他　${cn(salesOther())}円\n  ─────────\n  合計　　${cn(tot)}円\n\n👥 来店：${S.groups}組\n\n🔐 金庫確認\n${safeBlock}\n  ─────────\n  合計　　${cn(safeTot())}円　${dtxt}${rtxt}\n\n📦 発注\n${ordtxt}\n\n🥂 グラス洗い残し：${gtxt}${mtxt}\n\n以上です。お疲れ様でした 🌙`;
 }
