@@ -196,7 +196,7 @@ const BILL_DEFAULT = {5000:3,1000:15,500:60,100:60,50:10}; // ¥10,000は目標�
 
 // ══ 状態 ══════════════════════════════════════════════
 const S = {
-  shop:'', date:'', staff:[], groups:'',
+  shop:'', time:'', date:'', staff:[], groups:'',
   tickets:[],
   // 売上は伝票から自動集計（手動上書き用フラグなし→常に伝票優先）
   other:'',  // その他売上のみ手動入力
@@ -204,7 +204,7 @@ const S = {
   change:  {10000:0,5000:0,1000:0,500:0,100:0,50:0},
   exchange:{10000:0,5000:0,1000:0,500:0,100:0,50:0},
   diffReason:'',
-  fix:{'氷カット':'','丸氷':'','炭酸':''},
+  fix:{'氷カット':'','丸氷':'','炭酸':''}, iceOk:false,
   drops:[{name:'',level:''}], frees:[],
   chk:{}, glassOk:null, memo:''
 };
@@ -214,7 +214,9 @@ let st=0;
 
 // ══ ステップ ══════════════════════════════════════════
 function buildSteps(){
-  const s=['shop','basic','groups','tickets','sales','safe','orders','remind'];
+  const s=['shop'];
+  if(S.shop==='雨') s.push('time');
+  s.push('basic','groups','tickets','sales','safe','orders','remind');
   if(shouldShowGarbage()) s.push('garbage');
   s.push('check','handover','summary');
   return s;
@@ -226,6 +228,9 @@ const p   = n=>String(n).padStart(2,'0');
 const fd  = s=>{if(!s)return '';const[y,m,d]=s.split('-');return `${y}年${+m}月${+d}日`;};
 const cn  = n=>Number(n||0).toLocaleString('ja-JP');
 const fy  = n=>cn(n)+'円';
+
+// 集計用店舗名：雨は昼/夜を付けて「昼雨」「夜雨」、々はそのまま
+const shopName = ()=>S.shop==='雨'?(S.time||'')+'雨':S.shop;
 
 // 売上：現金＋カードは伝票合計、その他は手動
 const salesCash  = ()=>ticketByPay('cash');
@@ -278,7 +283,7 @@ function updProg(){
   document.getElementById('pfill').style.width=pct+'%';
   document.getElementById('plabel').textContent=`STEP ${st+1} / ${STEPS.length}`;
   document.getElementById('dots').innerHTML=STEPS.map((_,i)=>{const c=i<st?'done':i===st?'active':'';return `<div class="dot ${c}"></div>`;}).join('');
-  const ht=document.getElementById('hdr-title');if(ht)ht.textContent=S.shop||'BAR NIGHT';
+  const ht=document.getElementById('hdr-title');if(ht)ht.textContent=shopName()||'BAR NIGHT';
 }
 
 function render(){
@@ -287,7 +292,7 @@ function render(){
   document.getElementById('hdate').textContent=`${now.getFullYear()}.${p(now.getMonth()+1)}.${p(now.getDate())}`;
   const c=document.getElementById('card');
   const inner=document.createElement('div');inner.className='ci';
-  const fns={shop,basic,groups,tickets,sales,safe,orders,remind,garbage,check,handover,summary};
+  const fns={shop,time,basic,groups,tickets,sales,safe,orders,remind,garbage,check,handover,summary};
   inner.innerHTML=fns[STEPS[st]]();
   c.innerHTML='';c.appendChild(inner);
   c.style.animation='none';requestAnimationFrame(()=>{c.style.animation='';c.className='card';});
@@ -301,6 +306,14 @@ function shop(){return `
   <div style="margin-top:16px">
     ${SHOPS.map(n=>`<button class="shop-btn ${S.shop===n?'on':''}" onclick="selectShop('${n}')">${n}</button>`).join('')}
   </div>`;}
+
+function time(){return `
+  <div class="stag">営業時間帯</div>
+  <div class="qlabel">昼営業・夜営業を<br>選択してください</div>
+  <div style="margin-top:16px">
+    ${['昼','夜'].map(t=>`<button class="shop-btn ${S.time===t?'on':''}" onclick="selectTime('${t}')">${t}</button>`).join('')}
+  </div>
+  <button class="bs" onclick="back()">← 戻る</button>`;}
 
 function basic(){
   const tags=S.staff.map((n,i)=>`<div class="staff-tag">${n}<button class="staff-tag-del" onclick="removeStaff(${i})">×</button></div>`).join('');
@@ -626,8 +639,13 @@ function summary(){
 // ══ INTERACTIONS ══════════════════════════════════════
 
 function selectShop(name){
-  S.shop=name; STEPS=buildSteps();
+  S.shop=name; if(name!=='雨')S.time=''; STEPS=buildSteps();
   setTimeout(()=>{st=Math.min(st+1,STEPS.length-1);render();window.scrollTo({top:0,behavior:'smooth'});},300);
+}
+
+function selectTime(t){
+  S.time=t;
+  setTimeout(()=>{st=Math.min(st+1,STEPS.length-1);render();saveDraft();window.scrollTo({top:0,behavior:'smooth'});},300);
 }
 
 function onStaffInput(val){
@@ -690,7 +708,27 @@ function cSafe(){
   const rw=document.getElementById('rwrap');if(rw)rw.style.display=ok?'none':'';
 }
 
-function uFix(el){S.fix[el.dataset.fn]=el.value;}
+function uFix(el){
+  S.fix[el.dataset.fn]=el.value;
+  if(el.dataset.fn==='氷カット'||el.dataset.fn==='丸氷')S.iceOk=false;
+}
+const iceEmpty=()=>(+S.fix['氷カット']||0)===0&&(+S.fix['丸氷']||0)===0;
+function renderIceWarn(){
+  const c=document.getElementById('card');
+  const inner=document.createElement('div');inner.className='ci';
+  inner.innerHTML=`
+  <div class="stag">氷の発注確認</div>
+  <div class="rbox">
+    <div class="ricon">🧊</div>
+    <div class="rtext">氷の発注が<br>入力されていません！</div>
+    <div class="rsub">氷カット・丸氷の在庫を確認してください<br>発注忘れが多発しています</div>
+  </div>
+  <button class="bs" onclick="render()">← 発注に戻って入力する</button>
+  <button class="bsage" onclick="confirmNoIce()">氷は本当に不要（次へ進む） →</button>`;
+  c.innerHTML='';c.appendChild(inner);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function confirmNoIce(){S.iceOk=true;go('orders');}
 function aDrop(){S.drops.push({name:'',level:''});render();}
 function dDrop(i){S.drops.splice(i,1);if(S.drops.length===0)S.drops.push({name:'',level:''});render();}
 function uDrop(el,f){S.drops[+el.dataset.di][f]=el.value;}
@@ -735,6 +773,8 @@ function go(s){
     S.other=document.getElementById('iother')?.value||'0';
   }else if(s==='safe'){
     const r=document.getElementById('idiff');if(r)S.diffReason=r.value;
+  }else if(s==='orders'){
+    if(iceEmpty()&&!S.iceOk){renderIceWarn();return;}
   }else if(s==='handover'){
     if(S.glassOk===null){shToast('グラスの状態を選択してください');return;}
     S.memo=document.getElementById('imemo')?.value||'';
@@ -776,7 +816,7 @@ function buildLine(){
   const lB=S.shop==='雨'?'昼雨':'両替用';
   const safeBlock=`  ${lA}　　${cn(changeTot())}円${changeLines?'\n'+changeLines:''}\n  ${lB}　　${cn(exchangeTot())}円${exchLines?'\n'+exchLines:''}${needLines?'\n\n📋 補充が必要な金種\n'+needLines:''}`;
 
-  return `【日報】${fd(S.date)}　${S.shop}\n担当：${S.staff.join('・')}\n\n📊 売上\n  現金　　${cn(salesCash())}円\n  カード　${cn(salesCard())}円\n  その他　${cn(salesOther())}円\n  ─────────\n  合計　　${cn(tot)}円\n\n👥 来店：${S.groups}組\n\n🔐 金庫確認\n${safeBlock}\n  ─────────\n  合計　　${cn(safeTot())}円　${dtxt}${rtxt}\n\n📦 発注\n${ordtxt}\n\n🥂 グラス洗い残し：${gtxt}${mtxt}\n\n以上です。お疲れ様でした 🌙`;
+  return `【日報】${fd(S.date)}　${shopName()}\n担当：${S.staff.join('・')}\n\n📊 売上\n  現金　　${cn(salesCash())}円\n  カード　${cn(salesCard())}円\n  その他　${cn(salesOther())}円\n  ─────────\n  合計　　${cn(tot)}円\n\n👥 来店：${S.groups}組\n\n🔐 金庫確認\n${safeBlock}\n  ─────────\n  合計　　${cn(safeTot())}円　${dtxt}${rtxt}\n\n📦 発注\n${ordtxt}\n\n🥂 グラス洗い残し：${gtxt}${mtxt}\n\n以上です。お疲れ様でした 🌙`;
 }
 
 function cpLine(){
@@ -800,7 +840,7 @@ function sendToSheet(){
   const exchDetail=BILLS.filter(b=>(+S.exchange[b]||0)>0).map(b=>`${BILL_LBL[b]}×${S.exchange[b]}`).join('、');
   const staffFlags={};MEMBERS.forEach(m=>{staffFlags[m]=S.staff.includes(m)?1:0;});
   const payload={
-    shop:S.shop, date:fd(S.date), staff:S.staff.join('・'), groups:S.groups,
+    shop:shopName(), date:fd(S.date), staff:S.staff.join('・'), groups:S.groups,
     cash:salesCash(), card:salesCard(), other:salesOther(), totalSales:totSales(),
     ticketCash:ticketByPay('cash'), ticketCard:ticketByPay('card'),
     ticketOther:ticketByPay('other'), ticketTotal:ticketTot(),
@@ -831,7 +871,8 @@ function loadDraft(){
   try{
     const raw=localStorage.getItem(DRAFT_KEY);if(!raw)return false;
     const saved=JSON.parse(raw);if(!saved||!saved.S||!saved.S.date)return false;
-    const label=`${saved.S.date}${saved.S.shop?' / '+saved.S.shop:''}`;
+    const shopLbl=saved.S.shop==='雨'?(saved.S.time||'')+'雨':saved.S.shop;
+    const label=`${saved.S.date}${shopLbl?' / '+shopLbl:''}`;
     if(!confirm(`下書きがあります（${label}）\n続きから再開しますか？`))return false;
     Object.assign(S,saved.S);st=saved.st||0;STEPS=buildSteps();return true;
   }catch(e){return false;}
@@ -843,10 +884,10 @@ function resetAll(){
   if(!confirm('新しい日報を始めますか？'))return;
   clearDraft();
   Object.assign(S,{
-    shop:'',date:'',staff:[],groups:'',tickets:[],other:'',
+    shop:'',time:'',date:'',staff:[],groups:'',tickets:[],other:'',
     change:{10000:0,5000:0,1000:0,500:0,100:0,50:0},
     exchange:{10000:0,5000:0,1000:0,500:0,100:0,50:0},
-    diffReason:'',fix:{'氷カット':'','丸氷':'','炭酸':''},
+    diffReason:'',fix:{'氷カット':'','丸氷':'','炭酸':''},iceOk:false,
     drops:[{name:'',level:''}],frees:[],chk:{},glassOk:null,memo:''
   });
   tNo='';tAmt='';tPay='';STEPS=buildSteps();st=0;render();
