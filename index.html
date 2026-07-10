@@ -181,9 +181,12 @@ textarea::placeholder{color:var(--stone)}
 // ══ 設定 ══════════════════════════════════════════════
 const SAFE_TARGET = 66500;
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwKuqdTL1WR-F54mbDrqmAEajX7u_fwjr4TjjjF2erogeY5_FcCTlyzm8baXlDXD-oq/exec';
+// 管理用API（gas/admin.gs をデプロイしたURL。未設定なら下の固定メンバーで動く）
+const ADMIN_GAS_URL = '';
 const SHOPS   = ['雨','々'];
-const MEMBERS = ['莉乃','もも','叶','とも','幸','あいり','ちひろ','竜','竜聖','まき','コウ'];
-const MEMBER_YOMI = {'莉乃':'りの','もも':'もも','叶':'かな','とも':'とも','幸':'さち','あいり':'あいり','ちひろ':'ちひろ','竜':'りゅう','竜聖':'りゅうせい','まき':'まき','コウ':'こう'};
+// メンバーは管理画面から追加・非表示できる。以下は API に繋がらないときのフォールバック
+let MEMBERS = ['莉乃','もも','叶','とも','幸','あいり','ちひろ','竜','竜聖','まき','コウ'];
+let MEMBER_YOMI = {'莉乃':'りの','もも':'もも','叶':'かな','とも':'とも','幸':'さち','あいり':'あいり','ちひろ':'ちひろ','竜':'りゅう','竜聖':'りゅうせい','まき':'まき','コウ':'こう'};
 const FIXED   = [{name:'氷カット',unit:'袋'},{name:'丸氷',unit:'袋'},{name:'炭酸',unit:'ケース'}];
 const DROPS   = ['タオル','おしぼり','ナッツ','ビーバー','ゴミ袋','洗剤'];
 const LEVELS  = ['少ない','無し'];
@@ -897,6 +900,27 @@ function shToast(msg){
   setTimeout(()=>t.classList.remove('show'),2200);
 }
 
+// ══ メンバー読み込み ══════════════════════════════════
+// 管理用APIからメンバー一覧を取得して候補を差し替える。失敗時は固定リストのまま動く
+function loadMembers(){
+  if(!ADMIN_GAS_URL)return;
+  const cb='membersCallback_'+Date.now();
+  const timer=setTimeout(cleanup,8000);
+  function cleanup(){clearTimeout(timer);delete window[cb];const old=document.getElementById('membersScript');if(old)old.remove();}
+  window[cb]=res=>{
+    cleanup();
+    if(res&&Array.isArray(res.members)&&res.members.length){
+      MEMBERS=res.members.map(m=>m.name);
+      MEMBER_YOMI={};res.members.forEach(m=>{MEMBER_YOMI[m.name]=m.yomi||'';});
+    }
+  };
+  const s=document.createElement('script');
+  s.id='membersScript';s.src=ADMIN_GAS_URL+'?mode=members&callback='+cb;
+  s.onerror=cleanup;
+  document.body.appendChild(s);
+}
+
+loadMembers();
 if(!loadDraft())render();else render();
 </script>
 </body>
