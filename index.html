@@ -219,9 +219,9 @@ let st=0;
 function buildSteps(){
   const s=['shop'];
   if(S.shop==='雨') s.push('time');
-  s.push('basic','groups','tickets','sales','safe','orders','remind');
+  s.push('basic','groups','tickets','sales','safe','orders');
   if(shouldShowGarbage()) s.push('garbage');
-  s.push('check','handover','summary');
+  s.push('check','summary');
   return s;
 }
 let STEPS=buildSteps();
@@ -235,6 +235,16 @@ const fy  = n=>cn(n)+'円';
 // 集計用店舗名：雨は昼/夜を付けて「昼雨」「夜雨」、々はそのまま
 const shopName = ()=>S.shop==='雨'?(S.time||'')+'雨':S.shop;
 
+// 金庫目標：昼雨30,000円／夜雨36,500円／々は SAFE_TARGET（66,500円）
+const SAFE_TARGET_HIRUAME = 30000;
+const SAFE_TARGET_YORUAME = 36500;
+const safeTarget = ()=>S.shop==='雨'?(S.time==='昼'?SAFE_TARGET_HIRUAME:SAFE_TARGET_YORUAME):SAFE_TARGET;
+// 金庫で数える欄：雨は営業時間帯に応じた1欄のみ、々は釣り銭＋両替用の2欄
+function safeAreas(){
+  if(S.shop==='雨')return S.time==='昼'?[{key:'exchange',label:'昼雨'}]:[{key:'change',label:'夜雨'}];
+  return [{key:'change',label:'釣り銭'},{key:'exchange',label:'両替用'}];
+}
+
 // 売上：現金＋カードは伝票合計、その他は手動
 const salesCash  = ()=>ticketByPay('cash');
 const salesCard  = ()=>ticketByPay('card');
@@ -244,8 +254,9 @@ const totSales   = ()=>salesCash()+salesCard()+salesOther();
 // 金庫
 const changeTot   = ()=>BILLS.reduce((a,b)=>a+b*(+S.change[b]||0),0);
 const exchangeTot = ()=>BILLS.reduce((a,b)=>a+b*(+S.exchange[b]||0),0);
-const safeTot     = ()=>changeTot()+exchangeTot();
-const safeDif     = ()=>safeTot()-SAFE_TARGET;
+const areaTot     = k=>k==='change'?changeTot():exchangeTot();
+const safeTot     = ()=>safeAreas().reduce((a,ar)=>a+areaTot(ar.key),0);
+const safeDif     = ()=>safeTot()-safeTarget();
 
 const ticketByPay = pay=>S.tickets.filter(t=>t.pay===pay).reduce((a,t)=>a+(+t.amt||0),0);
 const ticketTot   = ()=>ticketByPay('cash')+ticketByPay('card')+ticketByPay('other');
@@ -295,7 +306,7 @@ function render(){
   document.getElementById('hdate').textContent=`${now.getFullYear()}.${p(now.getMonth()+1)}.${p(now.getDate())}`;
   const c=document.getElementById('card');
   const inner=document.createElement('div');inner.className='ci';
-  const fns={shop,time,basic,groups,tickets,sales,safe,orders,remind,garbage,check,handover,summary};
+  const fns={shop,time,basic,groups,tickets,sales,safe,orders,garbage,check,summary};
   inner.innerHTML=fns[STEPS[st]]();
   c.innerHTML='';c.appendChild(inner);
   c.style.animation='none';requestAnimationFrame(()=>{c.style.animation='';c.className='card';});
@@ -414,48 +425,32 @@ function sales(){
   <button class="bs" onclick="back()">← 戻る</button>`;}
 
 function safe(){
-  // 釣り銭グリッド（差異表示なし）
-  const changeGrid=BILLS.map(b=>`
+  // 表示する欄（雨は昼雨/夜雨の1欄、々は釣り銭＋両替用）ごとに金種グリッドを描画
+  const areasH=safeAreas().map(ar=>{
+    const grid=BILLS.map(b=>`
     <div class="brow">
       <span class="bdenom">${BILL_LBL[b]}</span>
-      <input class="binput" type="number" data-area="change" data-b="${b}" placeholder="0" min="0" value="${S.change[b]||''}" oninput="cSafe()">
+      <input class="binput" type="number" data-area="${ar.key}" data-b="${b}" placeholder="0" min="0" value="${S[ar.key][b]||''}" oninput="cSafe()">
       <span class="bunit">枚</span>
     </div>`).join('');
+    return `
+  <div class="safe-section-label">${ar.label}</div>
+  <div class="bills">${grid}</div>
+  <div class="safe-subtotal">
+    <span style="color:var(--warm)">${ar.label}合計</span>
+    <span style="font-weight:600" id="safe-${ar.key}-tot">${cn(areaTot(ar.key))} 円</span>
+  </div>`;}).join('');
 
-  // 両替用グリッド（目標なし）
-  const exchGrid=BILLS.map(b=>`
-    <div class="brow">
-      <span class="bdenom">${BILL_LBL[b]}</span>
-      <input class="binput" type="number" data-area="exchange" data-b="${b}" placeholder="0" min="0" value="${S.exchange[b]||''}" oninput="cSafe()">
-      <span class="bunit">枚</span>
-    </div>`).join('');
-
-  const cTot=changeTot(), eTot=exchangeTot(), tot=cTot+eTot;
-  const labelA = S.shop==='雨' ? '夜雨' : '釣り銭';
-  const labelB = S.shop==='雨' ? '昼雨' : '両替用';
-  const dif=tot-SAFE_TARGET, ok=dif===0;
+  const tot=safeTot(), dif=safeDif(), ok=dif===0;
   const dtxt=dif===0?'差異なし ✓':(dif>0?`+${dif.toLocaleString()} 円`:`${dif.toLocaleString()} 円`);
 
   return `
   <div class="stag">金庫確認</div>
   <div class="qlabel">金庫の釣り銭を<br>確認してください</div>
-
-  <div class="safe-section-label">${labelA}</div>
-  <div class="bills">${changeGrid}</div>
-  <div class="safe-subtotal">
-    <span style="color:var(--warm)">${labelA}合計</span>
-    <span style="font-weight:600" id="safe-c-tot">${cn(cTot)} 円</span>
-  </div>
-
-  <div class="safe-section-label">${labelB}</div>
-  <div class="bills">${exchGrid}</div>
-  <div class="safe-subtotal">
-    <span style="color:var(--warm)">${labelB}合計</span>
-    <span style="font-weight:600" id="safe-e-tot">${cn(eTot)} 円</span>
-  </div>
+  ${areasH}
 
   <div class="sresult ${ok?'sok':'sng'}" id="sbox">
-    <span class="srlabel">合計 <span id="stv">${cn(tot)}</span> 円　<span style="font-size:10px;color:var(--stone)">目標 ${cn(SAFE_TARGET)}円</span></span>
+    <span class="srlabel">合計 <span id="stv">${cn(tot)}</span> 円　<span style="font-size:10px;color:var(--stone)">目標 ${cn(safeTarget())}円</span></span>
     <span class="srval" id="sdv">${dtxt}</span>
   </div>
   <div id="rwrap" style="${ok?'display:none':''}">
@@ -506,16 +501,6 @@ function orders(){
   <button class="bp" onclick="go('orders')">発注入力を完了する →</button>
   <button class="bs" onclick="back()">← 戻る</button>`;}
 
-function remind(){return `
-  <div class="stag">発注リマインド</div>
-  <div class="rbox">
-    <div class="ricon">📦</div>
-    <div class="rtext">備品・ボトルの発注<br>し忘れはありませんか？</div>
-    <div class="rsub">今一度、在庫を確認してください</div>
-  </div>
-  <button class="bsage" onclick="go('remind')">確認OK！ →</button>
-  <button class="bs" onclick="back()">← 発注をやり直す</button>`;}
-
 function garbage(){
   const items=garbageItems();
   const done=items.filter(it=>S.chk[it.id]).length, total=items.length;
@@ -545,18 +530,13 @@ function check(){
   return `
   <div class="stag">退勤前チェック</div>
   <div class="qlabel">帰る前の確認を<br>してください</div>
-  <div class="qhint">全項目チェックで次へ進めます</div>
+  <div class="qhint">全項目チェック＋引き継ぎの入力で「完了」を押すと日報が送信されます</div>
   <div class="chklist">${rows}</div>
   <div class="cpbar">
     <div class="cptrack"><div class="cpfill" style="width:${pct}%"></div></div>
     <div class="cplbl">${done} / ${total} 完了</div>
   </div>
-  <button class="bp" id="bcnxt" onclick="go('check')" ${done===total?'':'disabled'}>次へ →</button>
-  <button class="bs" onclick="back()">← 戻る</button>`;}
-
-function handover(){return `
-  <div class="stag">引き継ぎ</div>
-  <div class="qlabel">引き継ぎ事項を<br>確認してください</div>
+  <div class="divider"></div>
   <div style="margin-bottom:20px">
     <div style="font-size:13px;color:var(--warm);font-weight:500;margin-bottom:8px">🥂 グラスの洗い残しはありますか？</div>
     <div class="glassbtns">
@@ -564,7 +544,6 @@ function handover(){return `
       <button class="gbtn ${S.glassOk===true?'on':''}" onclick="setGlass(true)">⚠️ あり（要確認）</button>
     </div>
   </div>
-  <div class="divider"></div>
   <div style="font-size:13px;color:var(--warm);font-weight:500;margin-bottom:6px">📝 特記事項・引き継ぎ</div>
   <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5">なければ空白でOK</div>
   <textarea id="imemo" placeholder="例）席Cのクーラーが効きすぎているため確認をお願いします">${S.memo}</textarea>
@@ -574,7 +553,7 @@ function handover(){return `
     <div style="font-family:'Noto Serif JP',serif;font-size:15px;color:var(--warm);line-height:1.7">タイムカードは切りましたか？</div>
     <div style="font-size:12px;color:var(--terra);font-weight:500;margin-top:4px;letter-spacing:.05em">押し忘れ注意！</div>
   </div>
-  <button class="bp" onclick="go('handover')" style="margin-top:16px;padding:20px;font-size:16px;background:var(--terra);letter-spacing:.1em">切りました ✦　日報を送信</button>
+  <button class="bp" id="bcnxt" onclick="go('check')" ${done===total?'':'disabled'} style="margin-top:16px;padding:20px;font-size:16px;background:var(--terra);letter-spacing:.1em">完了 ✦</button>
   <button class="bs" onclick="back()">← 戻る</button>`;}
 
 function summary(){
@@ -606,7 +585,7 @@ function summary(){
   <div class="stag">日報完成</div>
   <div class="qlabel" style="margin-bottom:18px">本日もお疲れ様でした ✦</div>
   <div class="ssec"><div class="stitle">基本情報</div>
-    <div class="srow2"><span class="sk">店舗</span><span class="sv">${S.shop}</span></div>
+    <div class="srow2"><span class="sk">店舗</span><span class="sv">${shopName()}</span></div>
     <div class="srow2"><span class="sk">日付</span><span class="sv">${fd(S.date)}</span></div>
     <div class="srow2"><span class="sk">担当者</span><span class="sv">${S.staff.join('・')}</span></div>
     <div class="srow2"><span class="sk">来店組数</span><span class="sv">${S.groups}組</span></div>
@@ -620,10 +599,9 @@ function summary(){
       <span class="sk" style="font-weight:600">合計</span><span class="stot">${tot.toLocaleString()} 円</span></div>
   </div>
   <div class="ssec"><div class="stitle">金庫確認</div>
-    <div class="srow2"><span class="sk">${S.shop==='雨'?'夜雨':'釣り銭'}合計</span><span class="sv">${cn(changeTot())} 円</span></div>
-    <div class="srow2"><span class="sk">${S.shop==='雨'?'昼雨':'両替用'}合計</span><span class="sv">${cn(exchangeTot())} 円</span></div>
+    ${safeAreas().map(ar=>`<div class="srow2"><span class="sk">${ar.label}合計</span><span class="sv">${cn(areaTot(ar.key))} 円</span></div>`).join('')}
     <div class="srow2"><span class="sk">金庫合計</span><span class="sv">${cn(safeTot())} 円</span></div>
-    <div class="srow2"><span class="sk">目標</span><span class="sv">${cn(SAFE_TARGET)} 円</span></div>
+    <div class="srow2"><span class="sk">目標</span><span class="sv">${cn(safeTarget())} 円</span></div>
     <div class="srow2"><span class="sk">差異</span><span class="${ok?'ok':'ng'}">${dlbl}</span></div>
     ${!ok&&S.diffReason?`<div class="srow2"><span class="sk">理由</span><span class="sv" style="font-size:12px">${S.diffReason}</span></div>`:''}
   </div>
@@ -632,7 +610,8 @@ function summary(){
     <div class="srow2"><span class="sk">グラス洗い残し</span><span class="${gcls}">${gtxt}</span></div>
     ${S.memo?`<div style="margin-top:7px;font-size:13px;color:var(--warm);line-height:1.7">${S.memo.replace(/\n/g,'<br>')}</div>`:''}
   </div>
-  <div class="ssec"><div class="stitle">LINE 送信テンプレ</div>
+  <div class="ssec"><div class="stitle">LINE 報告</div>
+    <div class="send-status" id="line-status" style="margin:0 0 10px;color:${LINE_SENT===false?'var(--terra)':'var(--matcha)'}">${LINE_SENT===null?'LINEに送信中…':LINE_SENT?'✓ LINEグループに送信しました':'LINEに自動送信できませんでした。下のボタンでコピーして手動で送ってください'}</div>
     <div class="linebox">${buildLine()}</div>
     <button class="copybtn" id="cbtn" onclick="cpLine()">📋 LINEテンプレをコピー</button>
   </div>
@@ -701,13 +680,13 @@ function cSafe(){
     const ec=document.querySelector(`[data-area="change"][data-b="${b}"]`);if(ec)S.change[b]=+ec.value||0;
     const ee=document.querySelector(`[data-area="exchange"][data-b="${b}"]`);if(ee)S.exchange[b]=+ee.value||0;
   });
-  const cTot=changeTot(), eTot=exchangeTot(), tot=cTot+eTot, dif=tot-SAFE_TARGET, ok=dif===0;
+  const tot=safeTot(), dif=safeDif(), ok=dif===0;
   const bx=document.getElementById('sbox');
   if(bx){bx.className='sresult '+(ok?'sok':'sng');
     document.getElementById('stv').textContent=cn(tot);
     document.getElementById('sdv').textContent=dif===0?'差異なし ✓':(dif>0?`+${dif.toLocaleString()} 円`:`${dif.toLocaleString()} 円`);}
-  const ct=document.getElementById('safe-c-tot');if(ct)ct.textContent=cn(cTot)+' 円';
-  const et=document.getElementById('safe-e-tot');if(et)et.textContent=cn(eTot)+' 円';
+  const ct=document.getElementById('safe-change-tot');if(ct)ct.textContent=cn(changeTot())+' 円';
+  const et=document.getElementById('safe-exchange-tot');if(et)et.textContent=cn(exchangeTot())+' 円';
   const rw=document.getElementById('rwrap');if(rw)rw.style.display=ok?'none':'';
 }
 
@@ -762,7 +741,10 @@ function tChk(id){
   const pct=total?Math.round(done/total*100):0;
   if(f)f.style.width=pct+'%';if(l)l.textContent=`${done} / ${total} 完了`;if(b)b.disabled=done!==total;
 }
-function setGlass(v){S.glassOk=v;render();}
+function setGlass(v){
+  const m=document.getElementById('imemo');if(m)S.memo=m.value; // 再描画でメモが消えないように保存
+  S.glassOk=v;render();
+}
 
 // ══ NAVIGATION ════════════════════════════════════════
 function go(s){
@@ -778,10 +760,11 @@ function go(s){
     const r=document.getElementById('idiff');if(r)S.diffReason=r.value;
   }else if(s==='orders'){
     if(iceEmpty()&&!S.iceOk){renderIceWarn();return;}
-  }else if(s==='handover'){
+  }else if(s==='check'){
     if(S.glassOk===null){shToast('グラスの状態を選択してください');return;}
     S.memo=document.getElementById('imemo')?.value||'';
     setTimeout(()=>sendToSheet(),500);
+    sendLineReport();
   }
   st=Math.min(st+1,STEPS.length-1);render();saveDraft();window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -789,24 +772,16 @@ function back(){st=Math.max(st-1,0);render();saveDraft();window.scrollTo({top:0,
 
 // ══ LINE ══════════════════════════════════════════════
 function buildLine(){
-  const tot=totSales(), dif=safeDif();
-  const dtxt=dif===0?'差異なし ✓':(dif>0?`超過 +${dif.toLocaleString()}円`:`不足 ${Math.abs(dif).toLocaleString()}円`);
+  const tot=totSales();
   const ords=[];
   FIXED.forEach(({name,unit})=>{const q=+S.fix[name]||0;if(q>0)ords.push(`  ・${name}　${q}${unit}`);});
   S.drops.forEach(o=>{if(o.name&&o.level)ords.push(`  ・${o.name}　${o.level}`);});
   S.frees.forEach(o=>{if(o.name)ords.push(`  ・${o.name}${o.qty?' '+o.qty:''}`);});
   const ordtxt=ords.length?ords.join('\n'):'  なし';
   const gtxt=S.glassOk===null?'未確認':S.glassOk?'あり（要確認）⚠️':'なし ✓';
-  const rtxt=dif!==0&&S.diffReason?`\n  理由：${S.diffReason}`:'';
   const mtxt=S.memo?`\n📝 引き継ぎ\n${S.memo}`:'';
 
-  // 釣り銭明細（0枚除外）
-  const changeLines=BILLS.filter(b=>(+S.change[b]||0)>0)
-    .map(b=>`  ${BILL_LBL[b]}　× ${S.change[b]}枚`).join('\n');
-  // 両替明細
-  const exchLines=BILLS.filter(b=>(+S.exchange[b]||0)>0)
-    .map(b=>`  ${BILL_LBL[b]}　× ${S.exchange[b]}枚`).join('\n');
-  // 補充が必要な金種（釣り銭＋両替用の合計 vs 目標）
+  // 補充が必要な金種（入力欄の合計 vs 目標）
   const needLines=BILLS.filter(b=>BILL_DEFAULT[b]!==undefined)
     .map(b=>{
       const total=(+S.change[b]||0)+(+S.exchange[b]||0);
@@ -814,12 +789,33 @@ function buildLine(){
       return diff<0?`  ${BILL_LBL[b]}　${diff}枚（現在${total}枚／目標${BILL_DEFAULT[b]}枚）`:null;
     })
     .filter(Boolean).join('\n');
+  const needBlock=needLines?`\n\n📋 補充が必要な金種\n${needLines}`:'';
 
-  const lA=S.shop==='雨'?'夜雨':'釣り銭';
-  const lB=S.shop==='雨'?'昼雨':'両替用';
-  const safeBlock=`  ${lA}　　${cn(changeTot())}円${changeLines?'\n'+changeLines:''}\n  ${lB}　　${cn(exchangeTot())}円${exchLines?'\n'+exchLines:''}${needLines?'\n\n📋 補充が必要な金種\n'+needLines:''}`;
+  return `【日報】${fd(S.date)}　${shopName()}\n担当：${S.staff.join('・')}\n\n📊 売上\n  現金　　${cn(salesCash())}円\n  カード　${cn(salesCard())}円\n  その他　${cn(salesOther())}円\n  ─────────\n  合計　　${cn(tot)}円\n\n👥 来店：${S.groups}組${needBlock}\n\n📦 発注\n${ordtxt}\n\n🥂 グラス洗い残し：${gtxt}${mtxt}\n\n以上です。お疲れ様でした 🌙`;
+}
 
-  return `【日報】${fd(S.date)}　${shopName()}\n担当：${S.staff.join('・')}\n\n📊 売上\n  現金　　${cn(salesCash())}円\n  カード　${cn(salesCard())}円\n  その他　${cn(salesOther())}円\n  ─────────\n  合計　　${cn(tot)}円\n\n👥 来店：${S.groups}組\n\n🔐 金庫確認\n${safeBlock}\n  ─────────\n  合計　　${cn(safeTot())}円　${dtxt}${rtxt}\n\n📦 発注\n${ordtxt}\n\n🥂 グラス洗い残し：${gtxt}${mtxt}\n\n以上です。お疲れ様でした 🌙`;
+// ══ LINE 自動送信 ═════════════════════════════════════
+let LINE_SENT=null; // null=送信中 / true=成功 / false=失敗
+function markLine(ok){
+  LINE_SENT=ok;
+  const el=document.getElementById('line-status');
+  if(el){
+    el.textContent=ok?'✓ LINEグループに送信しました':'LINEに自動送信できませんでした。下のボタンでコピーして手動で送ってください';
+    el.style.color=ok?'var(--matcha)':'var(--terra)';
+  }
+}
+function sendLineReport(){
+  LINE_SENT=null;
+  if(!ADMIN_GAS_URL){markLine(false);return;}
+  const cb='lineCallback_'+Date.now();
+  const timer=setTimeout(()=>{cleanup();markLine(false);},15000);
+  function cleanup(){clearTimeout(timer);delete window[cb];const old=document.getElementById('lineScript');if(old)old.remove();}
+  window[cb]=res=>{cleanup();markLine(!(res&&res.error));};
+  const s=document.createElement('script');
+  s.id='lineScript';
+  s.src=ADMIN_GAS_URL+'?mode=sendLine&callback='+cb+'&text='+encodeURIComponent(buildLine());
+  s.onerror=()=>{cleanup();markLine(false);};
+  document.body.appendChild(s);
 }
 
 function cpLine(){
@@ -877,7 +873,7 @@ function loadDraft(){
     const shopLbl=saved.S.shop==='雨'?(saved.S.time||'')+'雨':saved.S.shop;
     const label=`${saved.S.date}${shopLbl?' / '+shopLbl:''}`;
     if(!confirm(`下書きがあります（${label}）\n続きから再開しますか？`))return false;
-    Object.assign(S,saved.S);st=saved.st||0;STEPS=buildSteps();return true;
+    Object.assign(S,saved.S);STEPS=buildSteps();st=Math.min(saved.st||0,STEPS.length-1);return true;
   }catch(e){return false;}
 }
 function clearDraft(){try{localStorage.removeItem(DRAFT_KEY);}catch(e){}}
@@ -893,7 +889,7 @@ function resetAll(){
     diffReason:'',fix:{'氷カット':'','丸氷':'','炭酸':''},iceOk:false,
     drops:[{name:'',level:''}],frees:[],chk:{},glassOk:null,memo:''
   });
-  tNo='';tAmt='';tPay='';STEPS=buildSteps();st=0;render();
+  tNo='';tAmt='';tPay='';LINE_SENT=null;STEPS=buildSteps();st=0;render();
 }
 function shToast(msg){
   const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');

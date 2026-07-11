@@ -100,16 +100,10 @@ function api(params){
   });
 }
 
-// シートのヘッダー名の揺れを吸収（英語キー＝送信ペイロード / 日本語ヘッダーの両対応）
-const FIELD_ALIASES={
-  shop:['shop','店舗','店舗名','集計用店舗名'],
-  date:['date','日付','営業日'],
-  staff:['staff','担当','担当者','スタッフ'],
-  totalSales:['totalSales','合計','売上合計','総売上','売上'],
-  groups:['groups','組数','来店','来店組数'],
-  orders:['orders','発注','発注リスト','発注内容']
-};
-function fld(row,key){for(const a of FIELD_ALIASES[key]){if(a in row)return row[a];}return undefined;}
+// シートの列位置で参照（A=0, B=1, …）。日報アプリの送信列順に対応:
+// A=店舗 / B=日付 / C=担当 / D=組数 / H=売上合計 / U=発注内容
+const COL={shop:0,date:1,staff:2,groups:3,totalSales:7,orders:20};
+const f=(row,key)=>row[COL[key]];
 
 // 日付を yyyy-mm-dd に正規化（「2026年7月8日」「2026-07-08」「ISO文字列」対応）
 function isoDate(v){
@@ -122,11 +116,11 @@ function isoDate(v){
 }
 function fdDisp(iso){if(!iso)return '―';const[,m,d]=iso.split('-');return `${+m}/${+d}`;}
 
-// 選択中の月の日報のみ（日付昇順）
+// 選択中の月の日報のみ（日付昇順）。日付がパースできない行（ヘッダー等）は除外
 function monthReports(){
   return REPORTS
-    .map(r=>({...r,_date:isoDate(fld(r,'date'))}))
-    .filter(r=>r._date&&r._date.startsWith(MONTH))
+    .map(r=>({row:r,_date:isoDate(f(r,'date'))}))
+    .filter(x=>x._date&&x._date.startsWith(MONTH))
     .sort((a,b)=>a._date<b._date?-1:1);
 }
 
@@ -190,11 +184,11 @@ async function loadAll(){
 // ── 集計 ──────────────────────────────────────────────
 function aggShops(rows){
   const map={};
-  rows.forEach(r=>{
-    const shop=String(fld(r,'shop')||'不明');
+  rows.forEach(x=>{
+    const shop=String(f(x.row,'shop')||'不明');
     if(!map[shop])map[shop]={sales:0,groups:0,days:0};
-    map[shop].sales+=Number(fld(r,'totalSales'))||0;
-    map[shop].groups+=Number(fld(r,'groups'))||0;
+    map[shop].sales+=Number(f(x.row,'totalSales'))||0;
+    map[shop].groups+=Number(f(x.row,'groups'))||0;
     map[shop].days++;
   });
   const order=['昼雨','夜雨','々'];
@@ -205,10 +199,10 @@ function aggShops(rows){
 }
 function aggStaff(rows){
   const map={};
-  rows.forEach(r=>{
-    const names=String(fld(r,'staff')||'').split('・').map(s=>s.trim()).filter(Boolean);
+  rows.forEach(x=>{
+    const names=String(f(x.row,'staff')||'').split('・').map(s=>s.trim()).filter(Boolean);
     if(!names.length)return;
-    const sales=Number(fld(r,'totalSales'))||0;
+    const sales=Number(f(x.row,'totalSales'))||0;
     names.forEach(n=>{
       if(!map[n])map[n]={days:0,split:0,full:0};
       map[n].days++;map[n].split+=sales/names.length;map[n].full+=sales;
@@ -236,17 +230,17 @@ function renderDash(){
   const staff=aggStaff(rows);
   const staffH=staff.length?`
     <div class="tblwrap"><table class="adm">
-      <tr><th>スタッフ</th><th>出勤</th><th>均等按分</th><th>全額計上</th></tr>
-      ${staff.map(([n,v])=>`<tr><td>${n}</td><td>${v.days}日</td><td>${cn(Math.round(v.split))}円</td><td>${cn(v.full)}円</td></tr>`).join('')}
-      <tr class="total"><td>合計</td><td>―</td><td>${cn(Math.round(staff.reduce((a,[,v])=>a+v.split,0)))}円</td><td>―</td></tr>
+      <tr><th>スタッフ</th><th>出勤</th><th>均等按分</th><th>全額計上</th><th>1日あたり</th></tr>
+      ${staff.map(([n,v])=>`<tr><td>${n}</td><td>${v.days}日</td><td>${cn(Math.round(v.split))}円</td><td>${cn(v.full)}円</td><td>${cn(Math.round(v.full/v.days))}円</td></tr>`).join('')}
+      <tr class="total"><td>合計</td><td>―</td><td>${cn(Math.round(staff.reduce((a,[,v])=>a+v.split,0)))}円</td><td>―</td><td>―</td></tr>
     </table></div>
-    <div class="note">均等按分＝日の売上を出勤人数で割って計上（合計は月の総売上と一致）。全額計上＝出勤した日の売上をそのまま計上（複数人の日は重複するため合計は表示しません）。</div>`
+    <div class="note">均等按分＝日の売上を出勤人数で割って計上（合計は月の総売上と一致）。全額計上＝出勤した日の売上をそのまま計上（複数人の日は重複するため合計は表示しません）。1日あたり＝全額計上÷出勤日数（その子が出勤した日の平均売上）。</div>`
     :`<div class="empty">この月の日報はまだありません</div>`;
 
-  // 発注履歴（日付降順）
-  const ordRows=[...rows].reverse().map(r=>{
-    const o=String(fld(r,'orders')||'なし');
-    return `<tr><td>${fdDisp(r._date)}</td><td>${String(fld(r,'shop')||'')}</td><td class="left">${o}</td></tr>`;
+  // 発注履歴（日付降順・U列参照）
+  const ordRows=[...rows].reverse().map(x=>{
+    const o=String(f(x.row,'orders')||'なし');
+    return `<tr><td>${fdDisp(x._date)}</td><td>${String(f(x.row,'shop')||'')}</td><td class="left">${o}</td></tr>`;
   }).join('');
   const ordH=rows.length?`
     <div class="tblwrap"><table class="adm">
