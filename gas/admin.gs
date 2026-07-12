@@ -37,11 +37,12 @@
  * 6. LINE公式アカウントの設定で「グループ・複数人トークへの参加を許可する」をON
  *    （LINE Official Account Manager → 設定 → 応答設定）
  * 7. botを日報を送りたいスタッフのグループLINEに招待
- * 8. そのグループで「送信先登録」と発言する
+ * 8. そのグループで「送信先登録」と発言する（合言葉はスタッフに口頭で共有）
  *    → botが「✅ このグループを日報の送信先に登録しました」と返信します
  *    （この合言葉を送ったグループだけが送信先になるので、botが他グループに
- *      入っていても誤送信しません。送信先を変えたいときは新しいグループで
- *      同じ「送信先登録」と送るだけ）
+ *      入っていても誤送信しません。bot側から合言葉を案内することはないため、
+ *      意図しないグループに招待されても登録方法が漏れません。送信先を変えたい
+ *      ときは新しいグループで同じ「送信先登録」と送るだけ）
  * 9. 確認: ブラウザで「ウェブアプリURL?mode=lineStatus&pass=パスワード」を開き
  *    {"token":true,"target":true} なら設定完了。日報の「完了」で自動投稿されます
  */
@@ -134,10 +135,8 @@ function doPost(e){
          String(ev.message.text).trim() === LINE_REGISTER_KEYWORD && id){
         PropertiesService.getScriptProperties().setProperty('LINE_TARGET_ID', id);
         lineReply(ev.replyToken, '✅ このグループを日報の送信先に登録しました');
-      }else if(ev.type === 'join'){
-        lineReply(ev.replyToken, '日報の送信先にするには、このグループで「' + LINE_REGISTER_KEYWORD + '」と送信してください');
       }
-      // それ以外のイベント・発言は無視（送信先は変更しない）
+      // それ以外のイベント・発言は無視（送信先は変更せず、合言葉も一切案内しない）
     });
   }catch(err){ /* Webhook検証など空のリクエストは無視 */ }
   return ContentService.createTextOutput('ok');
