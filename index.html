@@ -13,6 +13,7 @@ body{font-family:'DM Sans','Noto Serif JP',sans-serif;background:var(--rice);col
 .hdr{width:100%;background:var(--charcoal);padding:22px 28px 20px;display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:32px}
 .hdr-sub{font-size:10px;color:var(--stone);letter-spacing:.25em;text-transform:uppercase;margin-bottom:3px}
 .hdr-title{font-family:'Noto Serif JP',serif;font-weight:300;font-size:20px;color:var(--paper);letter-spacing:.15em}
+a.hdr-title{color:var(--paper);text-decoration:none;display:inline-block}
 .hdr-date{font-size:11px;color:var(--stone);letter-spacing:.08em}
 .prog-wrap{width:100%;max-width:500px;padding:0 20px;margin-bottom:28px}
 .prog-top{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:7px}
@@ -167,7 +168,7 @@ textarea::placeholder{color:var(--stone)}
 </head>
 <body>
 <div class="hdr">
-  <div><div class="hdr-sub">Daily Report</div><div class="hdr-title" id="hdr-title">BAR NIGHT</div></div>
+  <div><div class="hdr-sub">Daily Report</div><a href="admin.html" class="hdr-title" id="hdr-title">雨 々</a></div>
   <div class="hdr-date" id="hdate"></div>
 </div>
 <div class="prog-wrap">
@@ -297,7 +298,7 @@ function updProg(){
   document.getElementById('pfill').style.width=pct+'%';
   document.getElementById('plabel').textContent=`STEP ${st+1} / ${STEPS.length}`;
   document.getElementById('dots').innerHTML=STEPS.map((_,i)=>{const c=i<st?'done':i===st?'active':'';return `<div class="dot ${c}"></div>`;}).join('');
-  const ht=document.getElementById('hdr-title');if(ht)ht.textContent=shopName()||'BAR NIGHT';
+  const ht=document.getElementById('hdr-title');if(ht)ht.textContent=shopName()||'雨 々';
 }
 
 function render(){
