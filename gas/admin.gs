@@ -36,9 +36,13 @@
  * 5. トークン貼り付け後、新バージョンで再デプロイ
  * 6. LINE公式アカウントの設定で「グループ・複数人トークへの参加を許可する」をON
  *    （LINE Official Account Manager → 設定 → 応答設定）
- * 7. botをスタッフのグループLINEに招待
- *    → 招待された瞬間にWebhookが飛び、グループIDが自動保存されます
- * 8. 確認: ブラウザで「ウェブアプリURL?mode=lineStatus&pass=パスワード」を開き
+ * 7. botを日報を送りたいスタッフのグループLINEに招待
+ * 8. そのグループで「送信先登録」と発言する
+ *    → botが「✅ このグループを日報の送信先に登録しました」と返信します
+ *    （この合言葉を送ったグループだけが送信先になるので、botが他グループに
+ *      入っていても誤送信しません。送信先を変えたいときは新しいグループで
+ *      同じ「送信先登録」と送るだけ）
+ * 9. 確認: ブラウザで「ウェブアプリURL?mode=lineStatus&pass=パスワード」を開き
  *    {"token":true,"target":true} なら設定完了。日報の「完了」で自動投稿されます
  */
 
@@ -49,6 +53,8 @@ const MEMBER_SHEET_NAME = 'メンバー';   // メンバー管理用シート（
 const ADMIN_PASSWORD    = 'ここにパスワードを設定';
 // LINE Messaging API のチャネルアクセストークン（未設定ならLINE送信はスキップ）
 const LINE_CHANNEL_ACCESS_TOKEN = '';
+// この合言葉をグループで発言したときだけ、そのグループを送信先に登録する
+const LINE_REGISTER_KEYWORD = '送信先登録';
 
 // 初期メンバー（メンバーシートが無いとき、最初のアクセス時に自動登録される）
 const SEED_MEMBERS = [
@@ -87,9 +93,11 @@ function doGet(e){
         result = sendLine(p.text); break;
       case 'lineStatus':     // LINE設定の確認用
         checkPass(p.pass);
+        var tid = PropertiesService.getScriptProperties().getProperty('LINE_TARGET_ID');
         result = {
           token: !!LINE_CHANNEL_ACCESS_TOKEN,
-          target: !!PropertiesService.getScriptProperties().getProperty('LINE_TARGET_ID')
+          target: !!tid,
+          targetTail: tid ? tid.slice(-4) : ''   // 末尾4文字のみ（識別用）
         };
         break;
       default:
@@ -112,20 +120,39 @@ function checkPass(pass){
 }
 
 // ══ LINE 自動投稿 ════════════════════════════════════════
-// LINE の Webhook 受信。botがグループに招待される／グループで発言があると
-// そのグループIDを保存し、以後の日報自動投稿の宛先にする。
+// LINE の Webhook 受信。合言葉「送信先登録」がグループで発言されたときだけ、
+// そのグループを日報の送信先として保存する。それ以外のイベント（招待・通常の
+// 発言など）では送信先を一切変更しないので、botが複数グループに入っていても
+// 誤送信しない。
 function doPost(e){
   try{
     const body = JSON.parse(e.postData.contents);
     (body.events || []).forEach(function(ev){
       const src = ev.source || {};
       const id = src.groupId || src.roomId || src.userId;
-      if(id && (ev.type === 'join' || ev.type === 'memberJoined' || ev.type === 'message')){
+      if(ev.type === 'message' && ev.message && ev.message.type === 'text' &&
+         String(ev.message.text).trim() === LINE_REGISTER_KEYWORD && id){
         PropertiesService.getScriptProperties().setProperty('LINE_TARGET_ID', id);
+        lineReply(ev.replyToken, '✅ このグループを日報の送信先に登録しました');
+      }else if(ev.type === 'join'){
+        lineReply(ev.replyToken, '日報の送信先にするには、このグループで「' + LINE_REGISTER_KEYWORD + '」と送信してください');
       }
+      // それ以外のイベント・発言は無視（送信先は変更しない）
     });
   }catch(err){ /* Webhook検証など空のリクエストは無視 */ }
   return ContentService.createTextOutput('ok');
+}
+
+// reply API で応答（replyToken 使用・無料枠を消費しない）。トークン未設定時は何もしない。
+function lineReply(replyToken, text){
+  if(!LINE_CHANNEL_ACCESS_TOKEN || !replyToken) return;
+  UrlFetchApp.fetch('https://api.line.me/v2/bot/message/reply', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: {Authorization: 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN},
+    payload: JSON.stringify({replyToken: replyToken, messages: [{type: 'text', text: text}]}),
+    muteHttpExceptions: true
+  });
 }
 
 function sendLine(text){
